@@ -1,0 +1,51 @@
+---
+// Icon nét mảnh Lucide (ISC). Import từng file SVG (?raw) → bundle chỉ chứa icon được dùng.
+import projects from 'lucide-static/icons/folder-kanban.svg?raw';
+import newProject from 'lucide-static/icons/folder-plus.svg?raw';
+import settings from 'lucide-static/icons/settings-2.svg?raw';
+import external from 'lucide-static/icons/external-link.svg?raw';
+import logout from 'lucide-static/icons/log-out.svg?raw';
+import upload from 'lucide-static/icons/image-plus.svg?raw';
+import eye from 'lucide-static/icons/eye.svg?raw';
+import up from 'lucide-static/icons/arrow-up.svg?raw';
+import down from 'lucide-static/icons/arrow-down.svg?raw';
+import star from 'lucide-static/icons/star.svg?raw';
+import trash from 'lucide-static/icons/trash-2.svg?raw';
+import check from 'lucide-static/icons/circle-check.svg?raw';
+import circle from 'lucide-static/icons/circle.svg?raw';
+import save from 'lucide-static/icons/save.svg?raw';
+import send from 'lucide-static/icons/send.svg?raw';
+import plus from 'lucide-static/icons/circle-plus.svg?raw';
+import house from 'lucide-static/icons/house.svg?raw';
+import image from 'lucide-static/icons/image.svg?raw';
+import video from 'lucide-static/icons/video.svg?raw';
+import globe from 'lucide-static/icons/globe.svg?raw';
+import alert from 'lucide-static/icons/triangle-alert.svg?raw';
+import close from 'lucide-static/icons/x.svg?raw';
+import pencil from 'lucide-static/icons/pencil.svg?raw';
+import undo from 'lucide-static/icons/undo-2.svg?raw';
+import grid from 'lucide-static/icons/layout-grid.svg?raw';
+import drawing from 'lucide-static/icons/file-image.svg?raw';
+import sparkles from 'lucide-static/icons/sparkles.svg?raw';
+
+const ICONS = {
+  projects, newProject, settings, external, logout, upload, eye, up, down, star, trash, check, circle,
+  save, send, plus, house, image, video, globe, alert, close, pencil, undo, grid, drawing, sparkles,
+};
+export type IconName = keyof typeof ICONS;
+
+interface Props {
+  name: IconName;
+  size?: number;
+  class?: string;
+}
+const { name, size = 18, class: cls = '' } = Astro.props;
+// Icon chỉ để trang trí: aria-hidden; nút/link chứa icon phải có chữ hoặc aria-label.
+const svg = ICONS[name]
+  .replace(/<!--[\s\S]*?-->\s*/, '')
+  .replace('width="24"', `width="${size}"`)
+  .replace('height="24"', `height="${size}"`)
+  .replace('class="lucide', `aria-hidden="true" focusable="false" class="${cls} shrink-0 lucide`);
+---
+
+<Fragment set:html={svg} />

@@ -1,0 +1,131 @@
+---
+import Base from '../layouts/Base.astro';
+import MediaImage from '../components/MediaImage.astro';
+import Gallery from '../components/Gallery.astro';
+import Lightbox from '../components/Lightbox.astro';
+import JegaTour from '../components/JegaTour.astro';
+import YouTube from '../components/YouTube.astro';
+import ProjectCard from '../components/ProjectCard.astro';
+import { coverOf } from '../lib/data';
+import { CATEGORY_LABEL, PATHS, TEXT } from '../lib/text';
+import type { FileUrl } from '../lib/media';
+import type { Project, SiteSettings } from '../lib/types';
+
+interface Props {
+  project: Project;
+  settings: SiteSettings;
+  url: FileUrl;
+  related?: Project[];
+  /** Xem trước trong admin: hiện banner, không index. */
+  preview?: boolean;
+}
+const { project: p, settings, url, related = [], preview = false } = Astro.props;
+const media = p.media ?? [];
+const cover = coverOf(p);
+const of = (kind: string) => media.filter((m) => m.kind === kind);
+const renders = of('render');
+const photos = of('photo');
+const drawings = of('drawing');
+const videos = p.video_urls ?? [];
+const tourPoster = of('tour_poster')[0];
+const title = p.title_vi;
+
+// Mục nào không có dữ liệu thì ẩn (không để ô rỗng).
+const facts = [
+  [TEXT.category, CATEGORY_LABEL[p.category]],
+  [TEXT.location, p.location_vi],
+  [TEXT.area, p.area_m2 ? `${p.area_m2} m²` : ''],
+  [TEXT.year, p.year ? String(p.year) : ''],
+  [TEXT.style, p.style_vi],
+  [TEXT.role, p.role_vi],
+].filter(([, v]) => v);
+const concept = p.concept_vi;
+const ogImage = cover?.files.includes('w1280.webp') ? url(cover, 'w1280.webp') : undefined;
+---
+
+<Base settings={settings} title={title} description={p.summary_vi} ogImage={ogImage}>
+  {preview && (
+    <div class="bg-ink text-canvas text-center text-xs py-2" role="status">
+      XEM TRƯỚC · trạng thái: {p.status} · <a class="-my-3 inline-flex min-h-11 items-center underline" href={`/admin/projects/${p.id}`}>quay lại chỉnh sửa</a>
+    </div>
+  )}
+  <article>
+    <header class="page pt-10 pb-8">
+      <a href={PATHS.projects} class="-my-3 inline-flex min-h-11 items-center text-[13px] text-muted hover:text-ink">← {TEXT.back_projects}</a>
+      <h1 class="mt-6 text-section font-normal">{title}</h1>
+      {p.summary_vi && <p class="mt-3 text-[14px] text-muted">{p.summary_vi}</p>}
+    </header>
+
+    <div class="page">
+      <MediaImage media={cover} url={url} sizes="100vw" aspect="16 / 8" eager pendingLabel={TEXT.image_pending} />
+    </div>
+
+    {(facts.length > 0 || concept) && (
+      <section class="page pt-section grid gap-10 md:grid-cols-[minmax(0,1fr)_minmax(0,1.9fr)] md:gap-16">
+        {facts.length > 0 && (
+          <dl class="grid grid-cols-2 gap-x-6 gap-y-5 self-start text-[13px] md:grid-cols-1">
+            {facts.map(([k, v]) => (
+              <div>
+                <dt class="text-[12.5px] text-muted">{k}</dt>
+                <dd class="mt-0.5">{v}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
+        {concept && (
+          <div class:list={[facts.length === 0 && 'md:col-start-2']}>
+            <h2 class="eyebrow">{TEXT.concept}</h2>
+            <p class="mt-4 max-w-[62ch] whitespace-pre-line text-[17px] leading-relaxed">{concept}</p>
+          </div>
+        )}
+      </section>
+    )}
+
+    {renders.length > 0 && (
+      <section class="page pt-section" aria-labelledby="renders">
+        <h2 id="renders" class="eyebrow mb-6">{TEXT.renders}</h2>
+        <Gallery items={renders} url={url} />
+      </section>
+    )}
+
+    {photos.length > 0 && (
+      <section class="page pt-section" aria-labelledby="photos">
+        <h2 id="photos" class="eyebrow mb-6">{TEXT.photos}</h2>
+        <Gallery items={photos} url={url} />
+      </section>
+    )}
+
+    {videos.length > 0 && (
+      <section class="page pt-section" aria-labelledby="videos">
+        <h2 id="videos" class="eyebrow mb-6">{TEXT.videos}</h2>
+        <div class="grid gap-6 md:grid-cols-2">
+          {videos.map((v, i) => <YouTube url={v} title={`${title} — video ${i + 1}`} />)}
+        </div>
+      </section>
+    )}
+
+    {drawings.length > 0 && (
+      <section class="page pt-section" aria-labelledby="drawings">
+        <h2 id="drawings" class="eyebrow mb-6">{TEXT.drawings}</h2>
+        <Gallery items={drawings} url={url} drawing />
+      </section>
+    )}
+
+    {p.jega_url && (
+      <section class="page pt-section" aria-labelledby="explore">
+        <h2 id="explore" class="eyebrow mb-6">{TEXT.explore_space}</h2>
+        <JegaTour tourUrl={p.jega_url} poster={tourPoster} url={url} embed={settings.jega_embed_enabled} title={`${title} — JEGA 360°`} />
+      </section>
+    )}
+
+    {related.length > 0 && (
+      <section class="page pt-section" aria-labelledby="related">
+        <h2 id="related" class="eyebrow mb-6">{TEXT.related}</h2>
+        <div class="grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+          {related.map((r) => <ProjectCard project={r} url={url} />)}
+        </div>
+      </section>
+    )}
+  </article>
+  <Lightbox />
+</Base>

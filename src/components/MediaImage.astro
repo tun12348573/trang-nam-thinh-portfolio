@@ -1,0 +1,33 @@
+---
+import { imageAttrs, type FileUrl } from '../lib/media';
+import type { Media } from '../lib/types';
+
+interface Props {
+  media?: Media | null;
+  url: FileUrl;
+  sizes: string;
+  /** CSS aspect-ratio của khung, ví dụ "4 / 3". */
+  aspect: string;
+  class?: string;
+  eager?: boolean;
+  pendingLabel: string;
+  fit?: 'cover' | 'contain';
+}
+const { media, url, sizes, aspect, class: cls = '', eager = false, pendingLabel, fit = 'cover' } = Astro.props;
+const attrs = media ? imageAttrs(media, url, sizes) : null;
+---
+
+<div class:list={['img-frame relative', cls]} style={`aspect-ratio:${aspect}`}>
+  {attrs?.src ? (
+    <img
+      {...attrs}
+      alt={media!.alt_vi}
+      loading={eager ? 'eager' : 'lazy'}
+      fetchpriority={eager ? 'high' : undefined}
+      decoding="async"
+      style={fit === 'contain' ? 'object-fit:contain' : `object-position:${media!.focal_x ?? 50}% ${media!.focal_y ?? 50}%`}
+    />
+  ) : (
+    <span class="placeholder-label absolute bottom-3 left-3">{pendingLabel}</span>
+  )}
+</div>

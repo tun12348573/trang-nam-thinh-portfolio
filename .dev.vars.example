@@ -1,0 +1,4 @@
+# Sao chép thành `.dev.vars` khi chạy local. Không commit file `.dev.vars`.
+# Ghi đè `vars` trong wrangler.jsonc, ví dụ để trỏ sang project Supabase khác. Để trống SUPABASE_URL = chế độ dữ liệu minh họa.
+SUPABASE_URL=https://xxxx.supabase.co
+SUPABASE_ANON_KEY=sb_publishable_xxxx

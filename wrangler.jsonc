@@ -1,0 +1,19 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "trang-nam-thinh-portfolio",
+  "main": "./src/worker.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": { "directory": "./dist", "binding": "ASSETS" },
+  "observability": { "enabled": true },
+
+  // Giữ project Supabase Free không bị tạm dừng (CONF-24): ping mỗi ngày lúc 03:00 UTC.
+  "triggers": { "crons": ["0 3 * * *"] },
+
+  // Không có secret: URL + publishable key của Supabase là công khai (dữ liệu được RLS bảo vệ).
+  // Media lưu ở Supabase Storage (bucket media-private / media-public, tạo bằng migration 0002).
+  "vars": {
+    "SUPABASE_URL": "https://uqmtpqwzrumfzxfrbuwf.supabase.co",
+    "SUPABASE_ANON_KEY": "sb_publishable_C7bw6BQTCtuLTetjLGPvXw_fkEbUuVl"
+  }
+}

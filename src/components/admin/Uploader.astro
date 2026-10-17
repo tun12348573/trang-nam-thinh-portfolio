@@ -1,0 +1,156 @@
+---
+import Icon from './Icon.astro';
+import type { MediaKind } from '../../lib/types';
+
+interface Props {
+  projectId: string | null;
+  kind: MediaKind;
+  label: string;
+  /** Upload thẳng vào bucket public (công trình đang xuất bản, hoặc hero). */
+  toPublic: boolean;
+  multiple?: boolean;
+}
+const { projectId, kind, label, toPublic, multiple = true } = Astro.props;
+---
+
+<div class="uploader" data-project={projectId ?? ''} data-kind={kind} data-public={toPublic ? '1' : ''} data-multiple={multiple ? '1' : ''}>
+  <!-- Cả vùng là <label> của ô chọn file: bấm hoặc Enter/Space khi focus đều mở hộp chọn; kéo-thả ảnh vào cũng được. -->
+  <label class="a-dropzone">
+    <span class="a-chip a-chip-soft !h-12 !w-12 !rounded-2xl"><Icon name="upload" size={22} /></span>
+    <span class="text-[15px]">
+      {label}: kéo thả ảnh vào đây, hoặc <span class="font-medium underline underline-offset-4">chọn file</span>
+    </span>
+    <span class="text-[13px] text-a-muted">JPG, PNG, WebP · tối đa 25 MB · tự chuyển WebP 640/1280/2400 px · nên dùng Chrome/Edge</span>
+    <input type="file" class="sr-only" accept="image/jpeg,image/png,image/webp" multiple={multiple} />
+  </label>
+  <ol class="log mt-3 space-y-1.5 text-[13px]" aria-live="polite"></ol>
+</div>
+
+<script>
+  import { IMAGE_WIDTHS, LIMITS } from '../../lib/media';
+  import { BUCKETS } from '../../lib/storage';
+  import { deleteMedia, sb, uploadFiles } from '../../lib/admin-storage';
+  import type { Media } from '../../lib/types';
+
+  type Out = { name: string; blob: Blob };
+
+  async function toWebp(source: CanvasImageSource, w: number, h: number): Promise<Blob> {
+    const canvas = new OffscreenCanvas(w, h);
+    canvas.getContext('2d')!.drawImage(source, 0, 0, w, h);
+    return canvas.convertToBlob({ type: 'image/webp', quality: 0.82 });
+  }
+
+  /** Ảnh → các biến thể WebP; bản vẽ giữ thêm file gốc để zoom (CONF-16). */
+  async function prepareImage(file: File, kind: string) {
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) throw new Error('Chỉ nhận JPG/PNG/WebP.');
+    if (file.size > LIMITS.imageBytes) throw new Error('Ảnh vượt 25 MB.');
+    const bmp = await createImageBitmap(file);
+    // Ảnh nhỏ hơn 2400 px: biến thể lớn nhất là kích thước gốc (không phóng to).
+    const widths: number[] = IMAGE_WIDTHS.filter((w) => w < bmp.width);
+    widths.push(Math.min(bmp.width, IMAGE_WIDTHS[IMAGE_WIDTHS.length - 1]));
+    const out: Out[] = [];
+    for (const w of [...new Set(widths)]) {
+      const h = Math.round((bmp.height * w) / bmp.width);
+      out.push({ name: `w${w}.webp`, blob: await toWebp(bmp, w, h) });
+    }
+    if (kind === 'drawing') out.push({ name: `original.${file.type.split('/')[1].replace('jpeg', 'jpg')}`, blob: file });
+    return { files: out, width: bmp.width, height: bmp.height };
+  }
+
+  async function nextPosition(projectId: string | null, kind: string) {
+    let q = sb().from('media_assets').select('position').eq('kind', kind).order('position', { ascending: false }).limit(1);
+    q = projectId ? q.eq('project_id', projectId) : q.is('project_id', null);
+    const { data } = await q;
+    return ((data?.[0]?.position as number | undefined) ?? 0) + 10;
+  }
+
+  /** Hero mới thay hero cũ: trỏ settings sang ảnh mới rồi xóa ảnh cũ. */
+  async function replaceHero(newId: string) {
+    const { data: s } = await sb().from('site_settings').select('hero_media_id').eq('id', 1).single();
+    const { error } = await sb().from('site_settings').update({ hero_media_id: newId, hero_mode: 'image' }).eq('id', 1);
+    if (error) throw new Error(`Cập nhật hero: ${error.message}`);
+    if (s?.hero_media_id) {
+      const { data: old } = await sb().from('media_assets').select('*').eq('id', s.hero_media_id).maybeSingle();
+      if (old) await deleteMedia(old as Media);
+    }
+  }
+
+  document.querySelectorAll<HTMLElement>('.uploader').forEach((root) => {
+    const input = root.querySelector('input')!;
+    const log = root.querySelector<HTMLOListElement>('.log')!;
+    const projectId = root.dataset.project || null;
+    const kind = root.dataset.kind!;
+    const isPublic = Boolean(root.dataset.public);
+    const bucket = isPublic ? BUCKETS.public : BUCKETS.private;
+    const zone = root.querySelector<HTMLElement>('.a-dropzone')!;
+
+    // Kéo-thả: đưa file vào ô chọn file rồi chạy cùng luồng như khi chọn bằng hộp thoại.
+    zone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      zone.classList.add('is-drag');
+    });
+    zone.addEventListener('dragleave', () => zone.classList.remove('is-drag'));
+    zone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      zone.classList.remove('is-drag');
+      const dropped = [...(e.dataTransfer?.files ?? [])].filter((f) => f.type.startsWith('image/'));
+      if (!dropped.length || input.disabled) return;
+      const dt = new DataTransfer();
+      (root.dataset.multiple ? dropped : dropped.slice(0, 1)).forEach((f) => dt.items.add(f));
+      input.files = dt.files;
+      input.dispatchEvent(new Event('change'));
+    });
+
+    input.addEventListener('change', async () => {
+      const files = [...(input.files ?? [])];
+      input.disabled = true;
+      let done = 0;
+      for (const file of files) {
+        const li = document.createElement('li');
+        li.textContent = `${file.name}: đang xử lý…`;
+        log.appendChild(li);
+        try {
+          const prepared = await prepareImage(file, kind);
+          const id = crypto.randomUUID();
+          const prefix = projectId ? `p/${projectId}/${id}` : `site/${id}`;
+          await uploadFiles(bucket, prefix, prepared.files, (n) => (li.textContent = `${file.name}: đã tải ${n}/${prepared.files.length} file`));
+          const row = {
+            id,
+            project_id: projectId,
+            kind,
+            position: await nextPosition(projectId, kind),
+            prefix,
+            files: prepared.files.map((f) => f.name),
+            width: prepared.width,
+            height: prepared.height,
+            bytes: prepared.files.reduce((s, f) => s + f.blob.size, 0),
+            is_public: isPublic,
+          };
+          const { error } = await sb().from('media_assets').insert(row);
+          if (error) {
+            await sb().storage.from(bucket).remove(row.files.map((f) => `${prefix}/${f}`));
+            throw new Error(`Lưu bản ghi: ${error.message}`);
+          }
+          if (kind === 'hero') await replaceHero(id);
+          li.textContent = `${file.name}: xong ✓`;
+          done++;
+        } catch (e) {
+          li.textContent = `${file.name}: LỖI — ${e instanceof Error ? e.message : e}`;
+          li.className = 'text-a-danger';
+        }
+      }
+      input.disabled = false;
+      // Form công trình còn thay đổi chưa lưu → không tự tải lại (sẽ mất nội dung đang gõ).
+      const unsaved = document.querySelector('form[data-dirty]');
+      if (done === files.length && !unsaved) location.reload();
+      else if (done) {
+        const li = document.createElement('li');
+        li.className = 'font-medium';
+        li.textContent = unsaved
+          ? 'Ảnh đã tải lên. Bấm "Lưu" phía trên để lưu thông tin đang sửa — trang sẽ tải lại và hiện ảnh mới.'
+          : 'Tải lại trang để thấy các file đã xong.';
+        log.appendChild(li);
+      }
+    });
+  });
+</script>

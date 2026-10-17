@@ -1,0 +1,53 @@
+---
+import MediaImage from './MediaImage.astro';
+import { TEXT } from '../lib/text';
+import type { FileUrl } from '../lib/media';
+import type { Media } from '../lib/types';
+
+interface Props {
+  tourUrl: string;
+  poster?: Media;
+  url: FileUrl;
+  /** Cờ chung trong settings: tắt nếu iframe hiện giỏ hàng JEGA không tắt được (CONF-19). */
+  embed: boolean;
+  title: string;
+}
+const { tourUrl, poster, url, embed, title } = Astro.props;
+---
+
+<div class="jega" data-src={embed ? tourUrl : ''} data-title={title}>
+  <div class="jega-stage relative">
+    {embed ? (
+      <button type="button" class="jega-load group relative block w-full text-left" aria-label={TEXT.load_tour}>
+        <MediaImage media={poster} url={url} sizes="100vw" aspect="16 / 9" pendingLabel="360°" />
+        <span class="btn-dark absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">{TEXT.load_tour}</span>
+      </button>
+    ) : (
+      <a href={tourUrl} target="_blank" rel="noopener" class="group block">
+        <MediaImage media={poster} url={url} sizes="100vw" aspect="16 / 9" pendingLabel="360°" />
+      </a>
+    )}
+  </div>
+  <a href={tourUrl} target="_blank" rel="noopener" class="mt-1 inline-block border-b border-ink/40 py-3 text-[13px] hover:border-ink">
+    {TEXT.open_tour} ↗
+  </a>
+</div>
+
+<script>
+  // Iframe chỉ được tạo khi khách bấm (không tải tour nặng khi vào trang).
+  document.querySelectorAll<HTMLElement>('.jega').forEach((root) => {
+    const btn = root.querySelector<HTMLButtonElement>('.jega-load');
+    if (!btn || !root.dataset.src) return;
+    btn.addEventListener('click', () => {
+      const frame = document.createElement('iframe');
+      frame.src = root.dataset.src!;
+      frame.title = root.dataset.title!;
+      frame.allow = 'fullscreen; gyroscope; accelerometer; xr-spatial-tracking';
+      frame.allowFullscreen = true;
+      frame.className = 'block w-full rounded-[2px] border-0 bg-placeholder';
+      frame.style.aspectRatio = '16 / 9';
+      root.querySelector('.jega-stage')!.replaceChildren(frame);
+      frame.focus();
+    });
+  });
+</script>

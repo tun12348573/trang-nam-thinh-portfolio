@@ -1,0 +1,11 @@
+---
+import ProjectDetail from '../../../../views/ProjectDetail.astro';
+import { loadProject } from '../../../../lib/admin';
+import { getSettings } from '../../../../lib/data';
+import { adminFileUrl } from '../../../../lib/media';
+
+// Xem trước riêng tư: dùng đúng giao diện công khai, media lấy qua URL ký ngắn hạn (kể cả bản nháp).
+const [project, settings] = await Promise.all([loadProject(Astro.locals.supabase, Astro.params.id!), getSettings()]);
+---
+
+<ProjectDetail project={project} settings={settings} url={adminFileUrl} preview />

@@ -1,0 +1,112 @@
+@import 'tailwindcss';
+
+/* Design tokens tập trung (PROJECT_CONTEXT mục 5). Giá trị là ước lượng — hiệu chỉnh tại đây sau khi đối chiếu ảnh. */
+@theme {
+  --color-canvas: #f4f3ed;
+  --color-ink: #30342f;
+  --color-muted: #61665e; /* AA: 5.29:1 trên canvas, 4.53:1 trên placeholder (bản đầu #747970 chỉ 4.01:1) */
+  --color-line: #dddcd5;
+  --color-button: #303a32;
+  --color-placeholder: #e4e2da;
+
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+  --text-hero: clamp(2.5rem, 4.9vw, 4.5rem);
+  --text-hero--line-height: 1.08;
+  --text-hero--letter-spacing: -0.025em;
+  --text-section: clamp(1.75rem, 2.8vw, 2.625rem);
+  --text-section--line-height: 1.15;
+  --text-section--letter-spacing: -0.015em;
+
+  --spacing-gutter: clamp(1.25rem, 4.7vw, 4.25rem);
+  --spacing-section: clamp(3.5rem, 8vw, 8.5rem);
+  --container-page: 1440px;
+
+  --radius-img: 2px;
+}
+
+@layer base {
+  html {
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    background: var(--color-canvas);
+    font-size: 16px; /* tối thiểu 16px trên điện thoại */
+    line-height: 1.6;
+  }
+  @media (min-width: 768px) {
+    body {
+      font-size: 15px;
+    }
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 3px;
+  }
+}
+
+@layer components {
+  .page {
+    max-width: var(--container-page);
+    margin-inline: auto;
+    padding-inline: var(--spacing-gutter);
+  }
+  .btn-dark {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--color-button);
+    color: #f4f3ed;
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 0.85rem 1.4rem;
+    border-radius: 2px;
+    transition: background-color 0.3s;
+  }
+  .btn-dark:hover {
+    background: #1f2621;
+  }
+  .eyebrow {
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+  /* Ô ảnh giữ cạnh chữ nhật rõ như mẫu (không blend vào nền — chỉ hero mới hòa trời vào nền). */
+  .img-frame {
+    overflow: hidden;
+    border-radius: var(--radius-img);
+    background: var(--color-placeholder);
+  }
+  .img-frame img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.45s ease;
+  }
+  a:hover .img-frame img {
+    transform: scale(1.025);
+  }
+  .placeholder-label {
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+  a:hover .img-frame img {
+    transform: none;
+  }
+}

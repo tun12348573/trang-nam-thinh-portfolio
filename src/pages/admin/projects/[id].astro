@@ -1,0 +1,273 @@
+---
+import Admin from '../../../layouts/Admin.astro';
+import Icon from '../../../components/admin/Icon.astro';
+import MediaList from '../../../components/admin/MediaList.astro';
+import Uploader from '../../../components/admin/Uploader.astro';
+import { loadProject, UserError } from '../../../lib/admin';
+import { CATEGORY_LABEL } from '../../../lib/text';
+import { CATEGORIES, type MediaKind, type Project } from '../../../lib/types';
+import type { IconName } from '../../../components/admin/Icon.astro';
+
+let p: Project;
+try {
+  p = await loadProject(Astro.locals.supabase, Astro.params.id!);
+} catch (e) {
+  if (e instanceof UserError) return Astro.redirect('/admin/projects?err=' + encodeURIComponent(e.message));
+  throw e;
+}
+const self = `/admin/projects/${p.id}`;
+const media = p.media ?? [];
+const published = p.status === 'published';
+const covers = media.filter((m) => m.kind === 'render' || m.kind === 'photo');
+const val = (k: string) => String((p as unknown as Record<string, unknown>)[k] ?? '');
+
+const textFields = [
+  { f: 'title', label: 'Tên công trình', required: true },
+  { f: 'summary', label: 'Mô tả một dòng', required: true, help: 'Hiện dưới ảnh bìa và trong thẻ công trình.' },
+  { f: 'concept', label: 'Ý tưởng thiết kế', required: true, area: true },
+  { f: 'location', label: 'Địa điểm', help: 'Chỉ ghi ở mức được phép công khai.' },
+  { f: 'style', label: 'Phong cách' },
+  { f: 'role', label: 'Vai trò thiết kế' },
+];
+
+
+const sections: { id: string; kind: MediaKind; title: string; sub: string; icon: IconName; cover?: boolean; focal?: boolean }[] = [
+  { id: 'phoi-canh', kind: 'render', title: 'Phối cảnh', sub: 'Ảnh render — hiện ở gallery đầu trang công trình.', icon: 'image', cover: true, focal: true },
+  { id: 'anh-thuc-te', kind: 'photo', title: 'Ảnh thực tế', sub: 'Ảnh chụp công trình sau khi hoàn thiện.', icon: 'image', cover: true, focal: true },
+  { id: 'ban-ve', kind: 'drawing', title: 'Bản vẽ', sub: 'Ảnh xuất từ CAD; giữ file gốc để khách phóng to đọc số đo.', icon: 'drawing' },
+];
+const tourPoster = media.filter((m) => m.kind === 'tour_poster');
+---
+
+<Admin
+  title={p.title_vi || 'Công trình chưa đặt tên'}
+  section="Công trình"
+  icon="house"
+  subtitle={published ? 'Đã xuất bản — chỉnh sửa hiện công khai sau tối đa 60 giây.' : 'Bản nháp — khách chưa xem được.'}
+>
+  <Fragment slot="actions">
+    <div class="a-btn-group">
+      <a class="a-btn" href={`${self}/preview`} target="_blank"><Icon name="eye" /> Xem trước</a>
+      <button class:list={['a-btn', published && 'a-btn-primary']} form="project-form" name="action" value="save"><Icon name="save" /> Lưu</button>
+      {published ? (
+        <button type="button" class="a-btn" id="unpublish"><Icon name="undo" /> Gỡ xuất bản</button>
+      ) : (
+        <button type="button" class="a-btn a-btn-primary" id="publish"><Icon name="send" /> Lưu và xuất bản</button>
+      )}
+    </div>
+    <p id="progress" class="basis-full text-right text-[13px] text-a-muted empty:hidden" role="status"></p>
+    <p data-status-for="project-form" class="basis-full empty:hidden" role="status"></p>
+  </Fragment>
+
+  <div class="max-w-[60rem]">
+    <form id="project-form" method="post" action={`/api/admin/projects/${p.id}`} class="min-w-0 space-y-6" data-keep>
+      <section class="a-card space-y-5" aria-labelledby="h-info">
+        <div>
+          <h2 id="h-info" class="a-card-title">Thông tin chung</h2>
+          <p class="a-card-sub">Đường dẫn, danh mục và thông số hiện trên trang công trình.</p>
+        </div>
+        <div class="grid gap-5 sm:grid-cols-2">
+          <label class="a-field sm:col-span-2">
+            <span class="a-label">Slug (đường dẫn)</span>
+            <input class="a-input" type="text" name="slug" value={p.slug} required pattern="[a-z0-9-]+" />
+            <span class="a-help block">/cong-trinh/{p.slug}</span>
+          </label>
+          <label class="a-field">
+            <span class="a-label">Danh mục</span>
+            <select class="a-input" name="category">{CATEGORIES.map((c) => <option value={c} selected={c === p.category}>{CATEGORY_LABEL[c]}</option>)}</select>
+          </label>
+          <label class="a-field">
+            <span class="a-label">Thứ tự hiển thị</span>
+            <input class="a-input" type="number" name="position" value={p.position} />
+            <span class="a-help block">Số nhỏ hiện trước.</span>
+          </label>
+          <label class="a-field">
+            <span class="a-label">Diện tích (m²)</span>
+            <input class="a-input" type="number" name="area_m2" value={p.area_m2 ?? ''} min="0.1" step="0.1" />
+          </label>
+          <label class="a-field">
+            <span class="a-label">Năm</span>
+            <input class="a-input" type="number" name="year" value={p.year ?? ''} min="1900" max="2100" placeholder="2026" />
+          </label>
+          <label class="a-field sm:col-span-2">
+            <span class="a-label">Ảnh bìa</span>
+            <select class="a-input" name="cover_media_id">
+              <option value="">Tự chọn ảnh phối cảnh đầu tiên</option>
+              {covers.map((m, i) => <option value={m.id} selected={m.id === p.cover_media_id}>{m.kind === 'render' ? 'Phối cảnh' : 'Ảnh thực tế'} #{i + 1}{m.alt_vi && ` — ${m.alt_vi}`}</option>)}
+            </select>
+          </label>
+          <label class="flex min-h-11 cursor-pointer items-center justify-between gap-4 rounded-2xl bg-white px-4 py-3 sm:col-span-2">
+            <span>
+              <span class="block text-[15px] font-medium">Công trình nổi bật</span>
+              <span class="block text-[13px] text-a-muted">Ưu tiên hiện ở khu công trình tiêu biểu trên trang chủ.</span>
+            </span>
+            <input type="checkbox" class="a-switch" name="featured" checked={p.featured} />
+          </label>
+        </div>
+      </section>
+
+      <section class="a-card space-y-5" aria-labelledby="h-text">
+        <div>
+          <h2 id="h-text" class="a-card-title">Nội dung</h2>
+          <p class="a-card-sub">Ô có dấu <span class="text-a-danger">*</span> bắt buộc trước khi xuất bản.</p>
+        </div>
+        {textFields.map((b) => (
+          <label class="a-field">
+            <span class="a-label">
+              {b.label}{b.required && <span class="text-a-danger" aria-hidden="true">*</span>}
+            </span>
+            {b.area ? (
+              <textarea class="a-input" name={`${b.f}_vi`} rows="5">{val(`${b.f}_vi`)}</textarea>
+            ) : (
+              <input class="a-input" type="text" name={`${b.f}_vi`} value={val(`${b.f}_vi`)} />
+            )}
+            {b.help && <span class="a-help block">{b.help}</span>}
+          </label>
+        ))}
+      </section>
+
+      <section class="a-card space-y-5" aria-labelledby="h-media-links">
+        <div>
+          <h2 id="h-media-links" class="a-card-title">Tour 360° & video</h2>
+          <p class="a-card-sub">Tour JEGA nhúng trong trang; video render đăng YouTube ở chế độ Không công khai.</p>
+        </div>
+        <label class="a-field">
+          <span class="a-label"><Icon name="globe" size={16} /> Link tour JEGA</span>
+          <input class="a-input" type="url" name="jega_url" value={p.jega_url ?? ''} placeholder="https://www.jegaai.com/720/..." />
+          <span class="a-help block">Khi đổi link, website tự lấy ảnh xem trước của tour làm poster.</span>
+        </label>
+        <label class="a-field">
+          <span class="a-label"><Icon name="video" size={16} /> Video render — link YouTube</span>
+          <textarea class="a-input" name="video_urls" rows="3" placeholder="https://youtu.be/...">{(p.video_urls ?? []).join('\n')}</textarea>
+          <span class="a-help block">Mỗi dòng một link, tối đa 12 video.</span>
+        </label>
+      </section>
+    </form>
+  </div>
+
+  {sections.map((s) => {
+    const items = media.filter((m) => m.kind === s.kind);
+    return (
+      <section id={s.id} class="a-card mt-6 max-w-[60rem] scroll-mt-28 space-y-5" aria-labelledby={`h-${s.id}`}>
+        <div class="flex items-start gap-3">
+          <span class="a-chip a-chip-soft"><Icon name={s.icon} size={20} /></span>
+          <div class="min-w-0 flex-1">
+            <h2 id={`h-${s.id}`} class="a-card-title">{s.title} <span class="ml-1 text-[14px] font-normal text-a-muted">{items.length} ảnh</span></h2>
+            <p class="a-card-sub">{s.sub}</p>
+          </div>
+        </div>
+        <MediaList items={items} returnTo={self} coverId={p.cover_media_id} canCover={s.cover} focal={s.focal} />
+        <Uploader projectId={p.id} kind={s.kind} label={`Thêm ${s.title.toLowerCase()}`} toPublic={published} />
+      </section>
+    );
+  })}
+
+  {p.jega_url && (
+    <section id="poster-tour" class="a-card mt-6 max-w-[60rem] space-y-5" aria-labelledby="h-poster">
+      <div class="flex items-start gap-3">
+        <span class="a-chip a-chip-soft"><Icon name="globe" size={20} /></span>
+        <div>
+          <h2 id="h-poster" class="a-card-title">Poster tour JEGA</h2>
+          <p class="a-card-sub">Ảnh hiện trước khi khách bấm tải tour 360°.</p>
+        </div>
+      </div>
+      <MediaList items={tourPoster} returnTo={self} focal={false} />
+      {tourPoster.length === 0 && <Uploader projectId={p.id} kind="tour_poster" label="Tải poster" toPublic={published} multiple={false} />}
+    </section>
+  )}
+
+  <section class="mt-6 max-w-[60rem] rounded-[1.5rem] border border-[#ecc3c3] bg-[#fdf6f6] p-5 md:p-7" aria-labelledby="h-danger">
+    <h2 id="h-danger" class="a-card-title text-a-danger">Xóa công trình</h2>
+    <p class="a-card-sub">Xóa vĩnh viễn công trình và toàn bộ ảnh trong Supabase Storage. Không hoàn tác được.</p>
+    <div class="mt-4 flex flex-wrap items-end gap-3">
+      <label class="a-field min-w-0 flex-1 sm:max-w-xs">
+        <span class="a-label">Gõ XOA để xác nhận</span>
+        <input class="a-input" type="text" id="delete-confirm" autocomplete="off" />
+      </label>
+      <button type="button" class="a-btn a-btn-danger" id="delete-project"><Icon name="trash" /> Xóa vĩnh viễn</button>
+    </div>
+  </section>
+</Admin>
+
+<script>
+  // Xuất bản / gỡ / xóa: phần file do trình duyệt làm (giới hạn subrequest của Worker), phần DB do server kiểm tra.
+  import { deleteMedia, projectMedia, setMediaPublic } from '../../../lib/admin-storage';
+
+  const form = document.querySelector<HTMLFormElement>('form[action^="/api/admin/projects/"]')!;
+  // Không dùng form.action: form có nút name="action" nên form.action trả về chính nút đó.
+  const endpoint = form.getAttribute('action')!;
+  const projectId = endpoint.split('/').pop()!;
+  const progress = document.getElementById('progress')!;
+  const self = `/admin/projects/${projectId}`;
+
+  async function call(action: string, body = new FormData()) {
+    body.set('action', action);
+    const res = await fetch(endpoint, { method: 'POST', body });
+    const data = (await res.json()) as { error?: string; message?: string };
+    if (!res.ok) throw new Error(data.error ?? `Lỗi ${res.status}`);
+    return data;
+  }
+
+  /** Chuyển toàn bộ ảnh của công trình sang bucket public/private, báo tiến độ. */
+  async function moveAll(toPublic: boolean) {
+    const media = (await projectMedia(projectId)).filter((m) => m.is_public !== toPublic);
+    for (const [i, m] of media.entries()) {
+      progress.textContent = `Đang chuyển ảnh ${i + 1}/${media.length}…`;
+      await setMediaPublic(m, toPublic);
+    }
+  }
+
+  async function run(button: HTMLButtonElement, task: () => Promise<string>) {
+    button.disabled = true;
+    try {
+      location.href = `${self}?ok=${encodeURIComponent(await task())}`;
+    } catch (e) {
+      progress.textContent = '';
+      location.href = `${self}?err=${encodeURIComponent(e instanceof Error ? e.message : String(e))}`;
+    }
+  }
+
+  document.getElementById('publish')?.addEventListener('click', (e) => {
+    if (!form.reportValidity()) return;
+    run(e.currentTarget as HTMLButtonElement, async () => {
+      progress.textContent = 'Đang lưu và kiểm tra…';
+      await call('prepare_publish', new FormData(form));
+      delete form.dataset.dirty; // form đã lưu ở bước trên → không cảnh báo "chưa lưu" khi chuyển trang
+      await moveAll(true);
+      return (await call('publish')).message ?? 'Đã xuất bản.';
+    });
+  });
+
+  document.getElementById('unpublish')?.addEventListener('click', (e) => {
+    if (!confirm('Gỡ xuất bản? Trang công trình sẽ không còn công khai.')) return;
+    run(e.currentTarget as HTMLButtonElement, async () => {
+      await call('unpublish');
+      await moveAll(false);
+      return 'Đã gỡ xuất bản. Ảnh đã thu về bucket private.';
+    });
+  });
+
+  document.getElementById('delete-project')!.addEventListener('click', (e) => {
+    if ((document.getElementById('delete-confirm') as HTMLInputElement).value !== 'XOA') {
+      alert('Gõ XOA để xác nhận.');
+      return;
+    }
+    const btn = e.currentTarget as HTMLButtonElement;
+    btn.disabled = true;
+    (async () => {
+      try {
+        const media = await projectMedia(projectId);
+        for (const [i, m] of media.entries()) {
+          progress.textContent = `Đang xóa ảnh ${i + 1}/${media.length}…`;
+          await deleteMedia(m);
+        }
+        await call('delete');
+        delete form.dataset.dirty;
+        location.href = `/admin/projects?ok=${encodeURIComponent('Đã xóa công trình và toàn bộ ảnh.')}`;
+      } catch (err) {
+        alert(err instanceof Error ? err.message : String(err));
+        btn.disabled = false;
+      }
+    })();
+  });
+</script>

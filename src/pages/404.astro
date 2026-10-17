@@ -1,0 +1,16 @@
+---
+import Base from '../layouts/Base.astro';
+import { getSettings } from '../lib/data';
+import { PATHS } from '../lib/text';
+
+const settings = await getSettings();
+Astro.response.status = 404;
+---
+
+<Base settings={settings} title="404">
+  <section class="page py-section">
+    <h1 class="text-section font-normal">404</h1>
+    <p class="mt-4 text-muted">Không tìm thấy trang.</p>
+    <a class="mt-8 inline-block border-b border-ink/40 text-[13px]" href={PATHS.home}>Về trang chủ</a>
+  </section>
+</Base>

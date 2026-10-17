@@ -1,0 +1,35 @@
+---
+import Admin from '../../../layouts/Admin.astro';
+import Icon from '../../../components/admin/Icon.astro';
+import { CATEGORY_LABEL } from '../../../lib/text';
+import { CATEGORIES } from '../../../lib/types';
+---
+
+<Admin title="Tạo công trình mới" section="Công trình" icon="newProject" subtitle="Công trình mới luôn ở trạng thái nháp — khách chưa xem được.">
+  <form method="post" action="/api/admin/projects" class="a-card max-w-2xl space-y-5" data-keep>
+    <div>
+      <h2 class="a-card-title">Thông tin ban đầu</h2>
+      <p class="a-card-sub">Các nội dung khác (mô tả, ảnh, tour, video) thêm ở bước sau.</p>
+    </div>
+    <label class="a-field">
+      <span class="a-label">Tên công trình</span>
+      <input class="a-input" type="text" name="title_vi" required placeholder="Ví dụ: Nhà phố Hạ Long" />
+    </label>
+    <div class="grid gap-5 sm:grid-cols-2">
+      <label class="a-field">
+        <span class="a-label">Slug (đường dẫn)</span>
+        <input class="a-input" type="text" name="slug" pattern="[a-z0-9-]*" placeholder="nha-pho-ha-long" />
+        <span class="a-help block">Để trống = tự tạo từ tên.</span>
+      </label>
+      <label class="a-field">
+        <span class="a-label">Danh mục</span>
+        <select class="a-input" name="category">{CATEGORIES.map((c) => <option value={c}>{CATEGORY_LABEL[c]}</option>)}</select>
+      </label>
+    </div>
+    <div class="grid gap-3 pt-2 sm:grid-cols-2">
+      <a href="/admin/projects" class="a-btn">Hủy</a>
+      <button class="a-btn a-btn-primary"><Icon name="plus" /> Tạo bản nháp</button>
+    </div>
+    <p data-status role="status"></p>
+  </form>
+</Admin>

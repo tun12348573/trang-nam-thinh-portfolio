@@ -1,0 +1,154 @@
+---
+import Icon from './Icon.astro';
+import { adminFileUrl, largestImage } from '../../lib/media';
+import type { Media } from '../../lib/types';
+
+interface Props {
+  items: Media[];
+  returnTo: string;
+  coverId?: string | null;
+  canCover?: boolean;
+  /** Bản vẽ / poster: không cần điểm cắt. */
+  focal?: boolean;
+}
+const { items, returnTo, coverId, canCover = false, focal = true } = Astro.props;
+const thumb = (m: Media) => {
+  const f = m.files.find((x) => x === 'w640.webp') ?? largestImage(m);
+  return f ? adminFileUrl(m, f) : '';
+};
+---
+
+{items.length === 0 ? (
+  <p class="text-[14px] text-a-muted">Chưa có ảnh.</p>
+) : (
+  <ul class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+    {items.map((m, i) => (
+      <li class="overflow-hidden rounded-[1.25rem] bg-white">
+        <div class="relative aspect-[4/3] bg-[#ecece7]">
+          {thumb(m) && (
+            <img
+              src={thumb(m)}
+              alt={m.alt_vi || ''}
+              class:list={['h-full w-full object-contain', focal && 'focal-pick cursor-crosshair']}
+              loading="lazy"
+              data-media={m.id}
+              title={focal ? 'Bấm vào ảnh để chọn điểm cắt thumbnail' : undefined}
+            />
+          )}
+          {focal && (
+            <span
+              class="focal-dot pointer-events-none absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-a-olive shadow"
+              data-media={m.id}
+              style={`left:${m.focal_x}%;top:${m.focal_y}%`}
+            ></span>
+          )}
+          <div class="absolute left-3 top-3 flex flex-wrap gap-1.5">
+            {coverId === m.id && <span class="a-badge bg-a-olive text-white"><Icon name="star" size={14} /> Ảnh bìa</span>}
+            <span class:list={['a-badge', m.is_public ? 'a-badge-ok' : 'a-badge-draft']}>{m.is_public ? 'Công khai' : 'Riêng tư'}</span>
+          </div>
+        </div>
+
+        <div class="p-3">
+          <form method="post" action={`/api/admin/media/${m.id}`} class="flex items-center gap-1">
+            <input type="hidden" name="return" value={returnTo} />
+            <button class="a-btn a-btn-ghost a-btn-icon" name="action" value="up" disabled={i === 0} aria-label="Đưa lên trước" title="Đưa lên trước"><Icon name="up" /></button>
+            <button class="a-btn a-btn-ghost a-btn-icon" name="action" value="down" disabled={i === items.length - 1} aria-label="Đưa xuống sau" title="Đưa xuống sau"><Icon name="down" /></button>
+            {canCover && coverId !== m.id && (
+              <button class="a-btn a-btn-ghost !px-3" name="action" value="cover"><Icon name="star" size={16} /> Làm bìa</button>
+            )}
+            <span class="ml-auto truncate px-1 text-[12px] text-a-muted">
+              {m.width && `${m.width}×${m.height} · `}{(m.bytes / 1048576).toFixed(1)} MB
+            </span>
+            <button type="button" class="a-btn a-btn-ghost a-btn-icon media-delete text-a-danger hover:!bg-a-danger-bg" data-media={JSON.stringify(m)} aria-label="Xóa ảnh" title="Xóa ảnh">
+              <Icon name="trash" />
+            </button>
+          </form>
+
+          <details class="group mt-1">
+            <summary class="flex min-h-11 cursor-pointer list-none items-center justify-between rounded-full px-3 text-[14px] font-medium hover:bg-a-card [&::-webkit-details-marker]:hidden">
+              Mô tả{focal && ' & điểm cắt'}
+              <span class="transition-transform group-open:rotate-180" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6" /></svg>
+              </span>
+            </summary>
+            <form method="post" action={`/api/admin/media/${m.id}`} class="space-y-3 px-1 pb-1 pt-3">
+              <input type="hidden" name="return" value={returnTo} />
+              <input type="hidden" name="action" value="meta" />
+              <label class="a-field"><span class="a-label">Mô tả ảnh (alt)</span><input class="a-input" type="text" name="alt_vi" value={m.alt_vi} /></label>
+              <label class="a-field"><span class="a-label">Chú thích</span><input class="a-input" type="text" name="caption_vi" value={m.caption_vi} /></label>
+              {focal ? (
+                <div>
+                  <div class="grid grid-cols-2 gap-3">
+                    <label class="a-field"><span class="a-label">Điểm cắt ngang %</span><input class="a-input" type="number" min="0" max="100" name="focal_x" value={m.focal_x} data-media={m.id} /></label>
+                    <label class="a-field"><span class="a-label">Điểm cắt dọc %</span><input class="a-input" type="number" min="0" max="100" name="focal_y" value={m.focal_y} data-media={m.id} /></label>
+                  </div>
+                  <p class="a-help">Bấm vào ảnh phía trên để chọn vùng luôn giữ lại khi ảnh bị cắt trong thẻ công trình.</p>
+                </div>
+              ) : (
+                <>
+                  <input type="hidden" name="focal_x" value={m.focal_x} />
+                  <input type="hidden" name="focal_y" value={m.focal_y} />
+                </>
+              )}
+              <button class="a-btn a-btn-primary w-full"><Icon name="save" size={16} /> Lưu mô tả</button>
+            </form>
+          </details>
+        </div>
+      </li>
+    ))}
+  </ul>
+)}
+
+<script>
+  import { deleteMedia } from '../../lib/admin-storage';
+  import type { Media } from '../../lib/types';
+
+  // Xóa: bản ghi + file trên Supabase Storage, chạy bằng phiên admin trong trình duyệt.
+  document.querySelectorAll<HTMLButtonElement>('.media-delete').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Xóa file này?')) return;
+      btn.disabled = true;
+      try {
+        await deleteMedia(JSON.parse(btn.dataset.media!) as Media);
+        location.reload();
+      } catch (e) {
+        alert(e instanceof Error ? e.message : String(e));
+        btn.disabled = false;
+      }
+    });
+  });
+
+  // Bấm vào thumbnail (hiện nguyên ảnh, object-contain) → điền điểm cắt % vào form, đặt chấm đỏ đúng chỗ trên ảnh.
+  function imageRect(img: HTMLImageElement) {
+    const box = img.getBoundingClientRect();
+    const scale = Math.min(box.width / img.naturalWidth, box.height / img.naturalHeight);
+    const w = img.naturalWidth * scale;
+    const h = img.naturalHeight * scale;
+    return { box, w, h, left: box.left + (box.width - w) / 2, top: box.top + (box.height - h) / 2 };
+  }
+
+  function placeDot(img: HTMLImageElement, x: number, y: number) {
+    const r = imageRect(img);
+    const dot = document.querySelector<HTMLElement>(`.focal-dot[data-media="${img.dataset.media}"]`)!;
+    dot.style.left = `${((r.left - r.box.left + (x / 100) * r.w) / r.box.width) * 100}%`;
+    dot.style.top = `${((r.top - r.box.top + (y / 100) * r.h) / r.box.height) * 100}%`;
+  }
+
+  document.querySelectorAll<HTMLImageElement>('.focal-pick').forEach((img) => {
+    const input = (axis: string) =>
+      document.querySelector<HTMLInputElement>(`input[name=focal_${axis}][data-media="${img.dataset.media}"]`)!;
+    const init = () => placeDot(img, Number(input('x').value), Number(input('y').value));
+    if (img.complete) init();
+    else img.addEventListener('load', init);
+
+    img.addEventListener('click', (e) => {
+      const r = imageRect(img);
+      const clamp = (v: number) => Math.round(Math.min(100, Math.max(0, v)));
+      const x = clamp(((e.clientX - r.left) / r.w) * 100);
+      const y = clamp(((e.clientY - r.top) / r.h) * 100);
+      input('x').value = String(x);
+      input('y').value = String(y);
+      placeDot(img, x, y);
+    });
+  });
+</script>

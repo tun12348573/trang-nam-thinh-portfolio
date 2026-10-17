@@ -1,0 +1,242 @@
+---
+import '../styles/admin.css';
+import { env } from 'cloudflare:workers';
+import Icon, { type IconName } from '../components/admin/Icon.astro';
+
+interface Props {
+  /** Tiêu đề nội dung (h1) và <title>. */
+  title: string;
+  /** Tiêu đề lớn ở thanh trên (mặc định = title). */
+  section?: string;
+  icon?: IconName;
+  subtitle?: string;
+}
+const { title, section = title, icon, subtitle } = Astro.props;
+const ok = Astro.url.searchParams.get('ok');
+const err = Astro.url.searchParams.get('err');
+const user = Astro.locals.user;
+const path = Astro.url.pathname;
+const preview = Astro.locals.designPreview;
+
+type NavItem = { href: string; label: string; icon: IconName; current?: boolean; external?: boolean };
+const groups: { label: string; items: NavItem[] }[] = [
+  {
+    label: 'Quản lý',
+    items: [
+      { href: '/admin/projects', label: 'Công trình', icon: 'projects', current: path === '/admin/projects' || (path.startsWith('/admin/projects/') && path !== '/admin/projects/new') },
+      { href: '/admin/projects/new', label: 'Tạo công trình', icon: 'newProject', current: path === '/admin/projects/new' },
+    ],
+  },
+  {
+    label: 'Website',
+    items: [
+      { href: '/admin/settings', label: 'Cài đặt trang', icon: 'settings', current: path.startsWith('/admin/settings') },
+      { href: '/', label: 'Xem website', icon: 'external', external: true },
+    ],
+  },
+];
+const initial = (user?.email ?? '?').charAt(0).toUpperCase();
+---
+
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>{title} — Quản trị Trang Nam Thịnh</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600&display=swap&subset=vietnamese" rel="stylesheet" />
+  </head>
+  <!-- data-sb-*: URL + publishable key (không bí mật) cho client Supabase trong trình duyệt (admin-storage.ts). -->
+  <body class="min-h-screen bg-a-page" data-sb-url={env.SUPABASE_URL} data-sb-key={env.SUPABASE_ANON_KEY}>
+    <a href="#noi-dung" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-a-olive focus:px-4 focus:py-2 focus:text-white">Bỏ qua menu</a>
+    {preview && (
+      <p class="bg-a-warn-bg px-4 py-2 text-center text-[13px] text-a-warn" role="status">
+        Chế độ xem giao diện (chỉ khi chạy dev): dữ liệu đọc được như khách, mọi thao tác lưu sẽ bị từ chối.
+      </p>
+    )}
+
+    {user ? (
+      <div class="lg:grid lg:min-h-screen lg:grid-cols-[17rem_1fr]">
+        {/* ───── Sidebar (desktop) ───── */}
+        <aside class="hidden border-r border-a-line bg-a-app lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col lg:px-5 lg:py-6">
+          <a href="/admin/projects" class="flex items-center gap-3 px-2">
+            <span class="a-chip"><Icon name="sparkles" size={20} /></span>
+            <span class="leading-tight">
+              <span class="block text-[17px] font-semibold">Trang Nam Thịnh</span>
+              <span class="block text-[13px] text-a-muted">Quản trị website</span>
+            </span>
+          </a>
+          <nav aria-label="Quản trị" class="mt-6 flex-1 space-y-6 border-t border-a-line pt-6">
+            {groups.map((g) => (
+              <div>
+                <p class="mb-2 px-4 text-[12px] font-semibold uppercase tracking-[0.08em] text-a-muted">{g.label}</p>
+                <ul class="space-y-1">
+                  {g.items.map((n) => (
+                    <li>
+                      <a
+                        href={n.href}
+                        class="a-nav"
+                        aria-current={n.current ? 'page' : undefined}
+                        target={n.external ? '_blank' : undefined}
+                        rel={n.external ? 'noopener' : undefined}
+                      >
+                        <Icon name={n.icon} size={19} />
+                        {n.label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </nav>
+          <form method="post" action="/api/admin/logout" class="border-t border-a-line pt-4">
+            <button class="a-nav w-full text-left">
+              <Icon name="logout" size={19} />
+              Đăng xuất
+            </button>
+          </form>
+        </aside>
+
+        <div class="min-w-0">
+          {/* ───── Thanh trên ───── */}
+          <header class="border-b border-a-line bg-a-app">
+            <div class="flex items-center gap-4 px-4 py-3 sm:px-6 lg:px-8 lg:py-5">
+              <a href="/admin/projects" class="a-chip !h-11 !w-11 lg:hidden" aria-label="Trang Nam Thịnh — Quản trị"><Icon name="sparkles" size={20} /></a>
+              <p class="min-w-0 truncate text-xl font-semibold sm:text-2xl lg:text-[28px]">{section}</p>
+              <div class="ml-auto flex items-center gap-3">
+                <span class="grid h-11 w-11 place-items-center rounded-full bg-a-olive text-[15px] font-semibold text-white" aria-hidden="true">{initial}</span>
+                <span class="hidden leading-tight sm:block">
+                  <span class="block max-w-[14rem] truncate text-[14px] font-medium">{user.email}</span>
+                  <span class="block text-[13px] text-a-muted">Quản trị viên</span>
+                </span>
+                <form method="post" action="/api/admin/logout" class="lg:hidden">
+                  <button class="a-btn a-btn-icon" aria-label="Đăng xuất"><Icon name="logout" /></button>
+                </form>
+              </div>
+            </div>
+            {/* Menu trên điện thoại / tablet: viên thuốc cuộn ngang */}
+            <nav aria-label="Quản trị" class="flex gap-2 overflow-x-auto px-4 pb-3 sm:px-6 lg:hidden">
+              {groups.flatMap((g) => g.items).map((n) => (
+                <a
+                  href={n.href}
+                  class:list={["a-nav shrink-0", !n.current && "bg-white"]}
+                  aria-current={n.current ? 'page' : undefined}
+                  target={n.external ? '_blank' : undefined}
+                  rel={n.external ? 'noopener' : undefined}
+                >
+                  <Icon name={n.icon} size={18} />
+                  {n.label}
+                </a>
+              ))}
+            </nav>
+          </header>
+
+          <main id="noi-dung" class="px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+            {/* Tiêu đề trang + nhóm nút hành động (dính ở trên khi cuộn) */}
+            <div class="sticky top-0 z-20 -mx-4 mb-6 flex flex-wrap items-center gap-x-4 gap-y-3 bg-a-page/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+              {icon && <span class="a-chip"><Icon name={icon} size={20} /></span>}
+              <div class="min-w-0 flex-1">
+                <h1 class="truncate text-[20px] font-semibold sm:text-[22px]">{title}</h1>
+                {subtitle && <p class="text-[14px] text-a-muted">{subtitle}</p>}
+                <slot name="meta" />
+              </div>
+              <slot name="actions" />
+            </div>
+            {err && (
+              <div class="a-alert a-alert-err mb-6" role="alert">
+                <Icon name="alert" class="mt-0.5" />
+                <p>{err}</p>
+              </div>
+            )}
+            <slot />
+          </main>
+        </div>
+      </div>
+    ) : (
+      /* ───── Chưa đăng nhập: thẻ ở giữa màn hình ───── */
+      <main id="noi-dung" class="grid min-h-screen place-items-center bg-a-app px-4 py-10">
+        <div class="w-full max-w-md">
+          <div class="mb-8 flex items-center gap-3">
+            <span class="a-chip"><Icon name="sparkles" size={20} /></span>
+            <span class="leading-tight">
+              <span class="block text-[17px] font-semibold">Trang Nam Thịnh</span>
+              <span class="block text-[13px] text-a-muted">Quản trị website</span>
+            </span>
+          </div>
+          <div class="rounded-[1.75rem] bg-white p-6 sm:p-8">
+            <h1 class="text-[22px] font-semibold">{title}</h1>
+            {subtitle && <p class="mt-1 text-[14px] text-a-muted">{subtitle}</p>}
+            {err && (
+              <div class="a-alert a-alert-err mt-5" role="alert">
+                <Icon name="alert" class="mt-0.5" />
+                <p>{err}</p>
+              </div>
+            )}
+            <div class="mt-6"><slot /></div>
+          </div>
+        </div>
+      </main>
+    )}
+
+    {ok && (
+      <div class="toast fixed bottom-4 right-4 z-50 flex max-w-[calc(100vw-2rem)] items-center gap-3 rounded-full bg-a-ink py-2 pl-4 pr-2 text-[14px] text-white shadow-lg" role="status">
+        <Icon name="check" class="text-[#c9dcb3]" />
+        <span>{ok}</span>
+        <button type="button" class="toast-close grid h-11 w-11 place-items-center rounded-full hover:bg-white/10" aria-label="Đóng thông báo"><Icon name="close" /></button>
+      </div>
+    )}
+  </body>
+</html>
+
+<script>
+  // Form có data-keep: lưu bằng fetch → lỗi thì GIỮ nguyên nội dung đã gõ và báo cạnh nút; thành công mới chuyển trang.
+  // Ô báo: [data-status] trong form, hoặc [data-status-for="<id form>"] ở ngoài (nút nằm trên thanh tiêu đề).
+  // Đồng thời cảnh báo khi rời trang (kể cả trang tự tải lại sau upload) mà form còn thay đổi chưa lưu.
+  for (const form of document.querySelectorAll<HTMLFormElement>('form[data-keep]')) {
+    const status =
+      form.querySelector<HTMLElement>('[data-status]') ?? (form.id ? document.querySelector<HTMLElement>(`[data-status-for="${form.id}"]`) : null);
+    form.addEventListener('input', () => (form.dataset.dirty = '1'));
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const button = e.submitter as HTMLButtonElement | null;
+      const label = button?.innerHTML;
+      if (button) {
+        button.disabled = true;
+        button.textContent = 'Đang lưu…';
+      }
+      try {
+        const res = await fetch(form.getAttribute('action')!, { method: 'POST', body: new FormData(form, button) });
+        const err = new URL(res.url).searchParams.get('err');
+        if (err) throw new Error(err);
+        delete form.dataset.dirty;
+        location.href = res.url;
+      } catch (error) {
+        if (status) {
+          status.textContent = error instanceof Error ? error.message : String(error);
+          status.className = 'a-alert a-alert-err basis-full';
+          status.setAttribute('role', 'alert');
+          status.scrollIntoView({ block: 'center' });
+        }
+        if (button) {
+          button.disabled = false;
+          button.innerHTML = label ?? 'Lưu';
+        }
+      }
+    });
+  }
+  addEventListener('beforeunload', (e) => {
+    if (document.querySelector('form[data-dirty]')) e.preventDefault();
+  });
+  // Bỏ ?ok=/?err= khỏi địa chỉ sau khi đã hiện, để tải lại trang không hiện lại thông báo cũ.
+  if (location.search.match(/[?&](ok|err)=/)) history.replaceState(null, '', location.pathname);
+  // Toast thành công: tự ẩn sau 6 giây, đóng được bằng nút.
+  const toast = document.querySelector<HTMLElement>('.toast');
+  if (toast) {
+    const hide = () => toast.remove();
+    toast.querySelector('.toast-close')?.addEventListener('click', hide);
+    setTimeout(hide, 6000);
+  }
+</script>

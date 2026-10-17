@@ -1,0 +1,18 @@
+---
+import Admin from '../../layouts/Admin.astro';
+---
+
+<Admin title="Đăng nhập" subtitle="Dành cho tài khoản quản trị website.">
+  <form method="post" action="/api/admin/login" class="space-y-5" data-keep>
+    <label class="a-field">
+      <span class="a-label">Email</span>
+      <input class="a-input" type="email" name="email" required autocomplete="username" placeholder="ten@congty.vn" />
+    </label>
+    <label class="a-field">
+      <span class="a-label">Mật khẩu</span>
+      <input class="a-input" type="password" name="password" required autocomplete="current-password" />
+    </label>
+    <button class="a-btn a-btn-primary w-full">Đăng nhập</button>
+    <p data-status role="status"></p>
+  </form>
+</Admin>

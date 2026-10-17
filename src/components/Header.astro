@@ -1,0 +1,23 @@
+---
+import { BRAND, PATHS, TEXT } from '../lib/text';
+
+const [first, ...rest] = BRAND.split(' ');
+const links = [
+  { href: PATHS.projects, label: TEXT.nav_projects },
+  { href: '/#about', label: TEXT.nav_about },
+  { href: '/#contact', label: TEXT.nav_contact },
+];
+---
+
+<header class="page flex flex-wrap items-center gap-x-10 gap-y-3 py-5">
+  <a href={PATHS.home} class="-my-3 py-3 text-[12px] font-medium uppercase leading-[1.15] tracking-[0.08em]" aria-label={BRAND}>
+    {first} {rest[0]}<br />{rest.slice(1).join(' ')}
+  </a>
+  <nav aria-label="Menu chính" class="order-3 w-full sm:order-none sm:w-auto">
+    <ul class="flex gap-4 text-[13px] text-muted sm:gap-6">
+      {links.map((l) => (
+        <li><a class="-my-3 inline-flex min-h-11 items-center transition-colors hover:text-ink" href={l.href}>{l.label}</a></li>
+      ))}
+    </ul>
+  </nav>
+</header>

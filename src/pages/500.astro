@@ -1,0 +1,32 @@
+---
+// Trang lỗi chung: KHÔNG gọi Supabase (lỗi thường do Supabase quá tải/tạm dừng) → luôn hiện được.
+import '../styles/global.css';
+
+interface Props {
+  error: unknown;
+}
+const { error } = Astro.props;
+console.error('500', error);
+Astro.response.headers.set('Retry-After', '60');
+---
+
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Tạm thời gián đoạn — Trang Nam Thịnh</title>
+  </head>
+  <body class="min-h-screen">
+    <main class="page flex min-h-screen flex-col justify-center py-section">
+      <p class="eyebrow">Trang Nam Thịnh</p>
+      <h1 class="mt-4 max-w-[18ch] text-section font-normal">Website đang tạm thời quá tải</h1>
+      <p class="mt-4 max-w-[52ch] text-muted">Vui lòng thử lại sau khoảng một phút. Nếu vẫn lỗi, xin liên hệ trực tiếp với chúng tôi.</p>
+      <div class="mt-8 flex flex-wrap gap-4">
+        <a href={Astro.url.pathname} class="btn-dark">Thử lại</a>
+        <a href="/" class="inline-flex min-h-11 items-center border-b border-ink/40 text-[13px]">Về trang chủ</a>
+      </div>
+    </main>
+  </body>
+</html>

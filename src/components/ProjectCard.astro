@@ -1,0 +1,31 @@
+---
+import MediaImage from './MediaImage.astro';
+import { coverOf } from '../lib/data';
+import { CATEGORY_LABEL, PATHS, TEXT } from '../lib/text';
+import type { FileUrl } from '../lib/media';
+import type { Project } from '../lib/types';
+
+interface Props {
+  project: Project;
+  url: FileUrl;
+  sizes?: string;
+}
+const { project: p, url, sizes = '(min-width: 768px) 30vw, 100vw' } = Astro.props;
+// Thay hàng "giá / phòng ngủ" của mẫu bằng thông tin kiến trúc có dữ liệu.
+const meta = [
+  CATEGORY_LABEL[p.category],
+  p.area_m2 ? `${p.area_m2} m²` : '',
+  p.location_vi,
+].filter(Boolean);
+---
+
+<a href={PATHS.project(p.slug)} class="group block">
+  <MediaImage media={coverOf(p)} url={url} sizes={sizes} aspect="1.06 / 1" pendingLabel={TEXT.image_pending} />
+  <div class="mt-3 flex items-baseline justify-between gap-4 text-[13px]">
+    <h3 class="font-normal">{p.title_vi}</h3>
+    {p.year && <span class="text-muted">{p.year}</span>}
+  </div>
+  <p class="mt-1.5 flex flex-wrap gap-x-4 text-[12.5px] text-muted">
+    {meta.map((x) => <span>{x}</span>)}
+  </p>
+</a>

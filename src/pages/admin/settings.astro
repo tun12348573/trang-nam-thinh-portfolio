@@ -1,0 +1,120 @@
+---
+import Admin from '../../layouts/Admin.astro';
+import Icon from '../../components/admin/Icon.astro';
+import MediaList from '../../components/admin/MediaList.astro';
+import Uploader from '../../components/admin/Uploader.astro';
+import { check } from '../../lib/admin';
+import { adminFileUrl, largestImage } from '../../lib/media';
+import type { Media, SiteSettings } from '../../lib/types';
+
+const sb = Astro.locals.supabase;
+const s = check(await sb.from('site_settings').select('*').eq('id', 1).single()) as SiteSettings;
+const hero = s.hero_media_id ? (check(await sb.from('media_assets').select('*').eq('id', s.hero_media_id).maybeSingle()) as Media | null) : null;
+const heroSrc = hero ? adminFileUrl(hero, hero.files.includes('w1280.webp') ? 'w1280.webp' : largestImage(hero) ?? hero.files[0]) : '/media/hero-poster.webp';
+const val = (k: string) => String((s as unknown as Record<string, unknown>)[k] ?? '');
+
+type Field = { f: string; label: string; area?: boolean; required?: boolean; help?: string; placeholder?: string };
+const cards: { id: string; title: string; sub: string; fields: Field[] }[] = [
+  {
+    id: 'trang-chu',
+    title: 'Trang chủ',
+    sub: 'Headline và đoạn chữ nhỏ trên hero.',
+    fields: [
+      { f: 'hero_title', label: 'Headline', area: true, help: 'Xuống dòng bằng Enter (mẫu dùng 2 dòng). Để trống = câu mặc định.' },
+      { f: 'hero_text', label: 'Đoạn chữ nhỏ cạnh headline', area: true },
+    ],
+  },
+  {
+    id: 'gioi-thieu',
+    title: 'Giới thiệu',
+    sub: 'Để trống thì mục Giới thiệu không hiện trên trang chủ.',
+    fields: [{ f: 'about', label: 'Giới thiệu doanh nghiệp', area: true }],
+  },
+  {
+    id: 'doanh-nghiep',
+    title: 'Doanh nghiệp',
+    sub: 'Hiện ở chân trang. Ô để trống sẽ được ẩn.',
+    fields: [
+      { f: 'legal_name', label: 'Tên pháp lý', required: true },
+      { f: 'address', label: 'Địa chỉ trụ sở' },
+    ],
+  },
+];
+---
+
+<Admin title="Cài đặt trang" section="Website" icon="settings" subtitle="Nội dung chung của website. Trang công khai cập nhật trong tối đa 60 giây sau khi lưu.">
+  <Fragment slot="actions">
+    <button class="a-btn a-btn-primary" form="settings-form"><Icon name="save" /> Lưu cài đặt</button>
+    <p data-status-for="settings-form" class="basis-full empty:hidden" role="status"></p>
+  </Fragment>
+
+  <div class="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+    <form id="settings-form" method="post" action="/api/admin/settings" class="min-w-0 space-y-6" data-keep>
+      {cards.map((c) => (
+        <section class="a-card space-y-5" aria-labelledby={`h-${c.id}`}>
+          <div>
+            <h2 id={`h-${c.id}`} class="a-card-title">{c.title}</h2>
+            <p class="a-card-sub">{c.sub}</p>
+          </div>
+          {c.fields.map((fd) => (
+            <label class="a-field">
+              <span class="a-label">
+                {fd.label}{fd.required && <span class="text-a-danger" aria-hidden="true">*</span>}
+              </span>
+              {fd.area ? (
+                <textarea class="a-input" name={`${fd.f}_vi`} rows="3">{val(`${fd.f}_vi`)}</textarea>
+              ) : (
+                <input class="a-input" type="text" name={`${fd.f}_vi`} value={val(`${fd.f}_vi`)} required={fd.required} />
+              )}
+              {fd.help && <span class="a-help block">{fd.help}</span>}
+            </label>
+          ))}
+          {c.id === 'doanh-nghiep' && (
+            <label class="a-field md:max-w-[calc(50%-0.5rem)]">
+              <span class="a-label">Mã số thuế</span>
+              <input class="a-input" type="text" name="tax_code" value={s.tax_code} inputmode="numeric" />
+            </label>
+          )}
+        </section>
+      ))}
+
+      <section class="a-card space-y-5" aria-labelledby="h-lien-he">
+        <div>
+          <h2 id="h-lien-he" class="a-card-title">Liên hệ</h2>
+          <p class="a-card-sub">Hiện ở mục Liên hệ trên trang chủ. Không có kênh nào thì mục này được ẩn.</p>
+        </div>
+        <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <label class="a-field"><span class="a-label">Điện thoại</span><input class="a-input" type="tel" name="phone" value={s.phone} placeholder="0912 345 678" /></label>
+          <label class="a-field"><span class="a-label">Zalo (số điện thoại)</span><input class="a-input" type="tel" name="zalo" value={s.zalo} /></label>
+          <label class="a-field"><span class="a-label">Email</span><input class="a-input" type="email" name="email" value={s.email} placeholder="lienhe@congty.vn" /></label>
+        </div>
+      </section>
+
+      <section class="a-card" aria-labelledby="h-jega">
+        <label class="flex cursor-pointer items-center justify-between gap-4">
+          <span>
+            <span id="h-jega" class="a-card-title block">Nhúng tour JEGA trong trang</span>
+            <span class="a-card-sub block">Tắt khi iframe hiện nút mua hàng ("Replace product") mà không gỡ được trong tài khoản JEGA — khi đó chỉ còn nút mở tour ở tab mới.</span>
+          </span>
+          <input type="checkbox" class="a-switch" name="jega_embed_enabled" checked={s.jega_embed_enabled} />
+        </label>
+      </section>
+    </form>
+
+    <aside class="space-y-6 xl:sticky xl:top-28" aria-label="Ảnh hero">
+      <section class="a-card space-y-4" aria-labelledby="h-hero">
+        <div>
+          <h2 id="h-hero" class="a-card-title">Ảnh hero trang chủ</h2>
+          <p class="a-card-sub">{hero ? 'Đang dùng ảnh đã tải lên.' : 'Đang dùng video minh họa mặc định.'}</p>
+        </div>
+        <div class="relative aspect-[16/9] overflow-hidden rounded-[1.25rem] bg-white">
+          <img src={heroSrc} alt="Hero hiện tại" class="h-full w-full object-cover" />
+          {!hero && <span class="a-badge absolute left-3 top-3 bg-a-ink text-white"><Icon name="video" size={14} /> Video mặc định</span>}
+        </div>
+        {hero && <MediaList items={[hero]} returnTo="/admin/settings" focal={false} />}
+        <Uploader projectId={null} kind="hero" label={hero ? 'Thay ảnh hero' : 'Dùng ảnh thay video'} toPublic multiple={false} />
+        <p class="a-help">Chọn ảnh ngoại thất chụp rộng, phần trời sáng ở trên để headline đọc rõ. Xóa ảnh hero để quay lại video mặc định (đổi video: thay file public/media/hero.mp4 rồi deploy lại).</p>
+      </section>
+    </aside>
+  </div>
+</Admin>

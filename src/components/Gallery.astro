@@ -1,0 +1,45 @@
+---
+import MediaImage from './MediaImage.astro';
+import { largestImage, originalFile, type FileUrl } from '../lib/media';
+import { TEXT } from '../lib/text';
+import type { Media } from '../lib/types';
+
+interface Props {
+  items: Media[];
+  url: FileUrl;
+  /** Bản vẽ: khung `contain`, không crop mất số đo; lightbox cho phép phóng to kích thước gốc. */
+  drawing?: boolean;
+}
+const { items, url, drawing = false } = Astro.props;
+---
+
+<ul class:list={['gallery grid gap-4', drawing ? 'sm:grid-cols-2' : 'sm:grid-cols-2 lg:grid-cols-3']}>
+  {items.map((m) => {
+    const full = drawing ? (originalFile(m) && /\.(webp|png|jpe?g)$/i.test(originalFile(m)!) ? originalFile(m)! : largestImage(m)) : largestImage(m);
+    const caption = m.caption_vi;
+    return (
+      <li>
+        <button
+          type="button"
+          class="lb-open block w-full text-left"
+          data-full={full ? url(m, full) : ''}
+          data-alt={m.alt_vi}
+          data-caption={caption}
+          data-zoom={drawing ? '1' : ''}
+        >
+          <MediaImage
+            media={m}
+            url={url}
+           
+            sizes="(min-width: 1024px) 30vw, (min-width: 640px) 45vw, 100vw"
+            aspect={drawing ? '4 / 3' : '3 / 2'}
+            fit={drawing ? 'contain' : 'cover'}
+            pendingLabel={TEXT.image_pending}
+            class={drawing ? 'bg-white' : ''}
+          />
+        </button>
+        {caption && <p class="mt-2 text-[13px] text-muted">{caption}</p>}
+      </li>
+    );
+  })}
+</ul>

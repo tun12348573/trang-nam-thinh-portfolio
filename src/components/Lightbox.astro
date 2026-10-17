@@ -1,0 +1,66 @@
+---
+import { TEXT } from '../lib/text';
+---
+
+<!-- <dialog> gốc: Escape đóng, focus trả về nút đã mở. Một lightbox dùng chung cho mọi gallery trên trang. -->
+<dialog id="lightbox" class="m-0 h-dvh max-h-none w-screen max-w-none bg-[#1b1d1a] p-0 text-canvas backdrop:bg-black/80">
+  <div class="flex h-full flex-col">
+    <div class="flex items-center gap-2 px-4 py-1 text-[13px] [&>button]:min-h-11 [&>button]:min-w-11 [&>button]:px-2">
+      <p class="lb-caption mr-auto truncate opacity-80"></p>
+      <button type="button" class="lb-zoom hidden underline-offset-4 hover:underline" data-in={TEXT.zoom_actual} data-out={TEXT.zoom_fit}>{TEXT.zoom_actual}</button>
+      <button type="button" class="lb-prev hover:underline" aria-label={TEXT.prev}>←</button>
+      <button type="button" class="lb-next hover:underline" aria-label={TEXT.next}>→</button>
+      <button type="button" class="lb-close hover:underline" autofocus>{TEXT.close}</button>
+    </div>
+    <div class="lb-stage relative min-h-0 flex-1 overflow-auto">
+      <img class="lb-img m-auto h-full w-full object-contain" alt="" />
+    </div>
+  </div>
+</dialog>
+
+<script>
+  const dlg = document.getElementById('lightbox') as HTMLDialogElement;
+  const img = dlg.querySelector<HTMLImageElement>('.lb-img')!;
+  const cap = dlg.querySelector<HTMLElement>('.lb-caption')!;
+  const zoomBtn = dlg.querySelector<HTMLButtonElement>('.lb-zoom')!;
+  let group: HTMLButtonElement[] = [];
+  let idx = 0;
+  let zoomed = false;
+
+  function setZoom(on: boolean) {
+    zoomed = on;
+    img.classList.toggle('h-full', !on);
+    img.classList.toggle('w-full', !on);
+    img.classList.toggle('object-contain', !on);
+    img.classList.toggle('max-w-none', on);
+    zoomBtn.textContent = on ? zoomBtn.dataset.out! : zoomBtn.dataset.in!;
+  }
+
+  function show(i: number) {
+    idx = (i + group.length) % group.length;
+    const b = group[idx];
+    img.src = b.dataset.full!;
+    img.alt = b.dataset.alt ?? '';
+    cap.textContent = b.dataset.caption || b.dataset.alt || '';
+    zoomBtn.classList.toggle('hidden', !b.dataset.zoom);
+    setZoom(false);
+  }
+
+  document.querySelectorAll<HTMLButtonElement>('.lb-open').forEach((b) => {
+    if (!b.dataset.full) return;
+    b.addEventListener('click', () => {
+      group = [...b.closest('.gallery')!.querySelectorAll<HTMLButtonElement>('.lb-open')].filter((x) => x.dataset.full);
+      show(group.indexOf(b));
+      dlg.showModal();
+    });
+  });
+  dlg.querySelector('.lb-close')!.addEventListener('click', () => dlg.close());
+  dlg.querySelector('.lb-prev')!.addEventListener('click', () => show(idx - 1));
+  dlg.querySelector('.lb-next')!.addEventListener('click', () => show(idx + 1));
+  zoomBtn.addEventListener('click', () => setZoom(!zoomed));
+  dlg.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') show(idx - 1);
+    if (e.key === 'ArrowRight') show(idx + 1);
+  });
+  dlg.addEventListener('close', () => img.removeAttribute('src'));
+</script>

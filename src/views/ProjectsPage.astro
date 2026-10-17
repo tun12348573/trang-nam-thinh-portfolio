@@ -1,0 +1,43 @@
+---
+import Base from '../layouts/Base.astro';
+import ProjectCard from '../components/ProjectCard.astro';
+import { getPublishedProjects, getSettings, mediaBase } from '../lib/data';
+import { CATEGORY_LABEL, PATHS, TEXT } from '../lib/text';
+import { publicFileUrl } from '../lib/media';
+import { CATEGORIES, type Category } from '../lib/types';
+
+const [settings, projects] = await Promise.all([getSettings(), getPublishedProjects()]);
+const url = publicFileUrl(mediaBase());
+
+const param = Astro.url.searchParams.get('c');
+const active = CATEGORIES.includes(param as Category) ? (param as Category) : null;
+// Bộ lọc chỉ hiện danh mục đang có công trình (theo dữ liệu thật).
+const used = CATEGORIES.filter((c) => projects.some((p) => p.category === c));
+const shown = active ? projects.filter((p) => p.category === active) : projects;
+const base = PATHS.projects;
+---
+
+<Base settings={settings} title={TEXT.nav_projects}>
+  <section class="page pt-10">
+    <h1 class="text-section font-normal">{TEXT.all_projects}</h1>
+    {used.length > 1 && (
+      <nav aria-label="Filter" class="mt-8 flex flex-wrap gap-x-6 border-b border-line text-[13px]">
+        <a href={base} class:list={['inline-flex min-h-11 items-center', active ? 'text-muted hover:text-ink' : 'border-b border-ink']} aria-current={active ? undefined : 'page'}>
+          {TEXT.filter_all}
+        </a>
+        {used.map((c) => (
+          <a href={`${base}?c=${c}`} class:list={['inline-flex min-h-11 items-center', active === c ? 'border-b border-ink' : 'text-muted hover:text-ink']} aria-current={active === c ? 'page' : undefined}>
+            {CATEGORY_LABEL[c]}
+          </a>
+        ))}
+      </nav>
+    )}
+    {shown.length === 0 ? (
+      <p class="mt-16 text-muted">{TEXT.empty_projects}</p>
+    ) : (
+      <div class="mt-10 grid gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
+        {shown.map((p) => <ProjectCard project={p} url={url} />)}
+      </div>
+    )}
+  </section>
+</Base>

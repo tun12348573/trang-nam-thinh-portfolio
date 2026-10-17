@@ -1,0 +1,82 @@
+---
+import Base from '../layouts/Base.astro';
+import Hero from '../components/Hero.astro';
+import ProjectCard from '../components/ProjectCard.astro';
+import MediaImage from '../components/MediaImage.astro';
+import { coverOf, getPublishedProjects, getSettings, mediaBase } from '../lib/data';
+import { PATHS, TEXT } from '../lib/text';
+import { publicFileUrl } from '../lib/media';
+
+const [settings, projects] = await Promise.all([getSettings(), getPublishedProjects()]);
+const url = publicFileUrl(mediaBase());
+
+const featured = projects.filter((p) => p.featured);
+const selected = (featured.length >= 3 ? featured : projects).slice(0, 3);
+// Khu nổi bật chỉ hiện khi có công trình khác với 3 ô phía trên (tránh lặp một công trình hai lần).
+const highlight = featured.find((p) => !selected.includes(p)) ?? projects.find((p) => !selected.includes(p));
+const about = settings.about_vi;
+const contacts = [
+  settings.phone && { label: TEXT.phone, value: settings.phone, href: `tel:${settings.phone.replace(/\s/g, '')}` },
+  settings.zalo && { label: TEXT.zalo, value: settings.zalo, href: `https://zalo.me/${settings.zalo.replace(/\D/g, '')}` },
+  settings.email && { label: TEXT.email, value: settings.email, href: `mailto:${settings.email}` },
+].filter((c): c is { label: string; value: string; href: string } => Boolean(c));
+---
+
+<Base settings={settings} description={settings.hero_text_vi || undefined}>
+  <Hero settings={settings} url={url} />
+
+  {selected.length > 0 && (
+    <section class="page pt-section" aria-labelledby="selected-title">
+      <div class="grid gap-6 md:grid-cols-[1fr_minmax(0,20rem)]">
+        <h2 id="selected-title" class="max-w-[22ch] text-section font-normal">{TEXT.selected_title}</h2>
+        <p class="max-w-xs text-[13px] leading-relaxed text-muted md:justify-self-end">{TEXT.selected_text}</p>
+      </div>
+      <div class="mt-10 grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+        {selected.map((p) => <ProjectCard project={p} url={url} />)}
+      </div>
+    </section>
+  )}
+
+  {highlight && (
+    <section class="page pt-section" aria-labelledby="highlight-title">
+      <div class="grid items-start gap-8 md:grid-cols-[minmax(0,1fr)_minmax(0,1.9fr)] md:gap-16">
+        <div class="md:pl-[6%] md:pt-8">
+          <p class="eyebrow">{TEXT.featured_label}</p>
+          <h2 id="highlight-title" class="mt-3 text-[17px] font-normal leading-snug">{highlight.title_vi}</h2>
+          <p class="mt-4 max-w-[30ch] text-[13px] leading-relaxed text-muted">{highlight.summary_vi}</p>
+          <a href={PATHS.project(highlight.slug)} class="mt-6 inline-block border-b border-ink/40 py-3 text-[13px] hover:border-ink">
+            {TEXT.view_project}
+          </a>
+        </div>
+        <a href={PATHS.project(highlight.slug)} tabindex="-1" aria-hidden="true">
+          <MediaImage media={coverOf(highlight)} url={url} sizes="(min-width: 768px) 62vw, 100vw" aspect="1.55 / 1" pendingLabel={TEXT.image_pending} />
+        </a>
+      </div>
+    </section>
+  )}
+
+  {about && (
+    <section id="about" class="page pt-section scroll-mt-8" aria-labelledby="about-title">
+      <div class="grid gap-6 border-t border-line pt-10 md:grid-cols-[minmax(0,1fr)_minmax(0,1.9fr)] md:gap-16">
+        <h2 id="about-title" class="eyebrow">{TEXT.about_title}</h2>
+        <p class="max-w-[60ch] whitespace-pre-line text-[17px] leading-relaxed">{about}</p>
+      </div>
+    </section>
+  )}
+
+  {contacts.length > 0 && (
+    <section id="contact" class="page pt-section scroll-mt-8" aria-labelledby="contact-title">
+      <div class="grid gap-6 border-t border-line pt-10 md:grid-cols-[minmax(0,1fr)_minmax(0,1.9fr)] md:gap-16">
+        <h2 id="contact-title" class="eyebrow">{TEXT.contact_title}</h2>
+        <ul class="grid gap-4 sm:grid-cols-3">
+          {contacts.map((c) => (
+            <li>
+              <p class="text-[13px] text-muted">{c.label}</p>
+              <a class="text-[17px] hover:underline" href={c.href}>{c.value}</a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  )}
+</Base>

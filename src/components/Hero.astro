@@ -1,0 +1,111 @@
+---
+import { imageAttrs, type FileUrl } from '../lib/media';
+import { PATHS, TEXT } from '../lib/text';
+import type { SiteSettings } from '../lib/types';
+
+interface Props {
+  settings: SiteSettings;
+  url: FileUrl;
+}
+const { settings: s, url } = Astro.props;
+const title = s.hero_title_vi || TEXT.hero_title_fallback;
+const text = s.hero_text_vi;
+const m = s.hero_media;
+const img = m ? imageAttrs(m, url, '100vw') : null;
+
+// Hero mặc định: video đóng gói trong public/media (render 1912×1080, 10 s, xe chạy vào sân — hình minh họa, CONF-25).
+// Ảnh hero upload trong admin sẽ thay video. Video không lưu trên Supabase để không tốn băng thông 5 GB/tháng.
+const video = img?.src ? null : { src: '/media/hero.mp4', poster: '/media/hero-poster.webp' };
+---
+
+<!--
+  Bố cục theo frame tham chiếu: headline + nút ở góc trên trái, đoạn chữ nhỏ bên phải,
+  công trình lớn chiếm toàn bộ khung (phần trời sáng nằm sau headline). Tỷ lệ khung ~ 1.36:1 trên desktop.
+  mix-blend-multiply (trên wrapper, vì wrapper có z-index tạo stacking context): trời trắng hòa đúng màu nền ngà, vùng tối gần như không đổi.
+  object-position 70%: khung hẹp hơn 16:9 → cắt bớt bên trái (tường rào), giữ trọn nhà và chỗ xe đỗ.
+-->
+<section class="hero relative isolate flex flex-col overflow-hidden bg-canvas lg:block" aria-label={title.replace('\n', ' ')}>
+  <!-- Từ 1024 px: media phủ toàn khung, cao = min(16:9, màn hình − menu) → nhà + xe thấy trọn ngay khi vào trang;
+       màn hình thấp thì video neo đáy, phần bị cắt là trời trống phía trên. Chữ nằm trên vùng trời.
+       Dưới 1024 px: media thành khối riêng dưới chữ (4:5 trên điện thoại cho video lớn, 16:9 trên tablet); margin âm kéo phần trời lên dưới khối chữ.
+       Khung 4:5 chỉ hiện ~45% chiều ngang video → không thể thấy trọn nhà; canh 45% để thấy trọn xe đỗ, cửa chính và nửa trái nhà. -->
+  <div class="relative order-2 -mt-[30%] aspect-[4/5] -z-10 mix-blend-multiply sm:-mt-[16%] sm:aspect-[16/9] lg:absolute lg:inset-0 lg:mt-0 lg:aspect-auto">
+    {video ? (
+      <video
+        class="hero-video h-full w-full object-cover object-[45%_100%] lg:object-[70%_100%]"
+        src={video.src}
+        poster={video.poster}
+        muted
+        playsinline
+        preload="metadata"
+        aria-hidden="true"
+      />
+    ) : (
+      <img {...img} alt={m!.alt_vi} class="h-full w-full object-cover object-[45%_100%] lg:object-[70%_100%]" fetchpriority="high" />
+    )}
+    <!-- Lớp cùng màu nền phủ phần trời phía trên: giữ chữ dễ đọc, che vệt nhiễu trong trời của render. Desktop: chỉ phủ phần trời còn lại
+         (mái nhà cách đáy ~64% chiều cao video = 0.36 × 56.25vw → phủ 100% − 37vw), không đè lên mái khi khung bị cắt thấp. -->
+    <div class="pointer-events-none absolute inset-x-0 top-0 h-[42%] bg-gradient-to-b from-white from-40% to-transparent lg:h-[calc(100%-37vw)]"></div>
+  </div>
+
+  <div class="page order-1 flex w-full flex-col pb-8 pt-[clamp(1.5rem,4vw,3.5rem)] lg:h-full lg:pt-[min(4vw,3.5rem,5svh)]">
+    <div class="grid gap-6 md:grid-cols-[1fr_minmax(0,20rem)]">
+      <div>
+        <h1 class="whitespace-pre-line text-hero font-normal max-sm:text-[2.125rem]">{title}</h1>
+        <a href={PATHS.projects} class="btn-dark mt-7">{TEXT.hero_cta}</a>
+      </div>
+      {text && <p class="max-w-xs pt-2 text-[13px] leading-relaxed text-muted md:justify-self-end">{text}</p>}
+    </div>
+    {video && (
+      <button
+        type="button"
+        class="hero-toggle absolute bottom-4 right-[var(--spacing-gutter)] z-10 min-h-11 rounded-[2px] bg-canvas/85 px-4 text-[13px] text-ink"
+        data-pause={TEXT.pause}
+        data-play={TEXT.play}
+      >
+        {TEXT.pause}
+      </button>
+    )}
+  </div>
+</section>
+
+<script>
+  // Video hero: chạy một lần rồi dừng ở khung cuối (xe đã đỗ) — lặp lại sẽ làm xe biến mất đột ngột.
+  // Chỉ tự chạy khi không bật reduced motion; nút Tạm dừng/Phát (bấm Phát sau khi hết sẽ chạy lại từ đầu).
+  const video = document.querySelector<HTMLVideoElement>('.hero-video');
+  const btn = document.querySelector<HTMLButtonElement>('.hero-toggle');
+  if (video && btn) {
+    // Không tự tải video 8 MB khi người dùng bật giảm chuyển động hoặc chế độ tiết kiệm dữ liệu (Data Saver).
+    const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData === true;
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches || saveData;
+    const sync = () => (btn.textContent = video.paused ? btn.dataset.play! : btn.dataset.pause!);
+    btn.addEventListener('click', () => (video.paused ? video.play() : video.pause()));
+    video.addEventListener('play', sync);
+    video.addEventListener('pause', sync);
+    if (!reduce) video.play().catch(sync); // autoplay bị chặn → giữ poster, nút chuyển thành "Phát"
+    sync();
+  }
+</script>
+
+<style>
+  /* Desktop: video phủ hết chiều ngang VÀ hiện trọn ngay khi vào trang (hero cao = màn hình − menu, tối đa 16:9).
+     Headline tự co theo khoảng trời còn trống để không đè lên nhà (video neo đáy, rộng 100vw → cao V = 56.25vw):
+     - fs-wide: chữ lớn trải ngang, đặt trên mái nhà (mái cách đáy 0.644V ≈ 36.2vw).
+     - fs-corner: màn hình thấp — chữ nhỏ gọn trong cột trời bên trái (mái bắt đầu ở 31% chiều ngang; ngọn cây trái
+       cách đáy 0.5V ≈ 28.1vw). Rộng chữ ≈ 9.4 × cỡ chữ → vừa khoảng từ lề trái tới 31vw; chừa chỗ cho nút (6.5rem).
+     Dùng cỡ lớn hơn trong hai cách (mỗi cách đều không đè nhà trong trường hợp của nó). */
+  @media (min-width: 1024px) {
+    .hero {
+      --h: min(56.25vw, max(calc(100svh - 4.25rem), 30rem));
+      --pt: min(4vw, 3.5rem, 5svh);
+      --fs-wide: min(4.9vw, 4.5rem, calc((var(--h) - 36.2vw - var(--pt) - 0.75rem) / 2.16));
+      /* lề trái thực của chữ: khung .page tối đa 1440px căn giữa + gutter */
+      --left: max(min(4.7vw, 4.25rem), calc((100vw - 1440px) / 2 + min(4.7vw, 4.25rem)));
+      --fs-corner: min(calc((31vw - var(--left) - 1.5rem) / 9.4), 4.5rem, calc((var(--h) - 28.1vw - var(--pt) - 6.5rem) / 2.16));
+      height: var(--h);
+    }
+    .hero h1 {
+      font-size: max(1.75rem, var(--fs-wide), var(--fs-corner));
+    }
+  }
+</style>

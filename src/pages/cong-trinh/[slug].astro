@@ -1,0 +1,10 @@
+---
+import ProjectDetail from '../../views/ProjectDetail.astro';
+import { loadProjectPage, mediaBase } from '../../lib/data';
+import { publicFileUrl } from '../../lib/media';
+
+const data = await loadProjectPage(Astro.params.slug!);
+if (!data) return Astro.rewrite('/404');
+---
+
+<ProjectDetail {...data} url={publicFileUrl(mediaBase())} />

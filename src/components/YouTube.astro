@@ -1,0 +1,36 @@
+---
+import { TEXT } from '../lib/text';
+import { youtubeId } from '../lib/storage';
+
+interface Props {
+  url: string;
+  title: string;
+}
+const { url, title } = Astro.props;
+const id = youtubeId(url);
+// Chỉ tải iframe YouTube khi khách bấm (iframe nặng ~1 MB JS); dùng youtube-nocookie để không đặt cookie theo dõi trước khi xem.
+---
+
+{id && (
+  <div class="yt relative aspect-video overflow-hidden rounded-[2px] bg-black" data-id={id} data-title={title}>
+    <button type="button" class="yt-load group absolute inset-0 block w-full" aria-label={`${TEXT.play}: ${title}`}>
+      <img src={`https://i.ytimg.com/vi/${id}/hqdefault.jpg`} alt="" loading="lazy" class="h-full w-full object-cover opacity-90 transition-opacity group-hover:opacity-100" />
+      <span class="btn-dark absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">▶ {TEXT.play}</span>
+    </button>
+  </div>
+)}
+
+<script>
+  document.querySelectorAll<HTMLElement>('.yt').forEach((root) => {
+    root.querySelector('.yt-load')?.addEventListener('click', () => {
+      const frame = document.createElement('iframe');
+      frame.src = `https://www.youtube-nocookie.com/embed/${root.dataset.id}?autoplay=1&rel=0&modestbranding=1`;
+      frame.title = root.dataset.title!;
+      frame.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
+      frame.allowFullscreen = true;
+      frame.className = 'absolute inset-0 h-full w-full border-0';
+      root.replaceChildren(frame);
+      frame.focus();
+    });
+  });
+</script>

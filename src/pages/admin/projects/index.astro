@@ -1,0 +1,85 @@
+---
+import Admin from '../../../layouts/Admin.astro';
+import Icon from '../../../components/admin/Icon.astro';
+import { check } from '../../../lib/admin';
+import { coverOf } from '../../../lib/data';
+import { CATEGORY_LABEL } from '../../../lib/text';
+import { adminFileUrl } from '../../../lib/media';
+import type { Project } from '../../../lib/types';
+
+const projects = check(
+  await Astro.locals.supabase
+    .from('projects')
+    .select('id, slug, status, category, position, featured, title_vi, summary_vi, cover_media_id, media:media_assets!media_project_fk(id, kind, prefix, files, is_public, position, focal_x, focal_y)')
+    .order('position')
+    .order('created_at'),
+) as Project[];
+
+const published = projects.filter((p) => p.status === 'published').length;
+const stats = [
+  { label: 'Tổng công trình', value: projects.length },
+  { label: 'Đã xuất bản', value: published },
+  { label: 'Bản nháp', value: projects.length - published },
+  { label: 'Nổi bật trên trang chủ', value: projects.filter((p) => p.featured).length },
+];
+const thumb = (p: Project) => {
+  const m = coverOf(p);
+  return m?.files.includes('w640.webp') ? { src: adminFileUrl(m, 'w640.webp'), pos: `${m.focal_x}% ${m.focal_y}%` } : null;
+};
+---
+
+<Admin title="Danh sách công trình" section="Công trình" icon="projects" subtitle="Thứ tự nhỏ hiện trước. Trang chủ lấy 3 công trình nổi bật đầu tiên.">
+  <Fragment slot="actions">
+    <a href="/admin/projects/new" class="a-btn a-btn-primary"><Icon name="plus" /> Tạo công trình</a>
+  </Fragment>
+
+  <ul class="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+    {stats.map((s) => (
+      <li class="a-card !p-5">
+        <p class="text-[13px] text-a-muted">{s.label}</p>
+        <p class="mt-1 text-[28px] font-semibold leading-none">{s.value}</p>
+      </li>
+    ))}
+  </ul>
+
+  {projects.length === 0 ? (
+    <div class="a-card flex flex-col items-center gap-4 py-14 text-center">
+      <span class="a-chip a-chip-soft !h-14 !w-14 !rounded-2xl"><Icon name="projects" size={26} /></span>
+      <div>
+        <p class="a-card-title">Chưa có công trình nào</p>
+        <p class="a-card-sub">Tạo công trình đầu tiên, thêm ảnh rồi xuất bản để hiện trên website.</p>
+      </div>
+      <a href="/admin/projects/new" class="a-btn a-btn-primary"><Icon name="plus" /> Tạo công trình</a>
+    </div>
+  ) : (
+    <section class="a-card !p-2 sm:!p-3" aria-label="Danh sách công trình">
+      <ul class="divide-y divide-a-line">
+        {projects.map((p) => {
+          const t = thumb(p);
+          return (
+            <li class="flex flex-wrap items-center gap-4 rounded-2xl p-3 transition-colors hover:bg-a-hover sm:flex-nowrap">
+              <span class="grid h-16 w-20 flex-none place-items-center overflow-hidden rounded-xl bg-white text-a-muted">
+                {t ? <img src={t.src} alt="" class="h-full w-full object-cover" style={`object-position:${t.pos}`} loading="lazy" /> : <Icon name="image" size={22} />}
+              </span>
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-[15px] font-medium">{p.title_vi || '(Chưa đặt tên)'}</p>
+                <p class:list={['truncate text-[13px]', p.summary_vi ? 'text-a-muted' : 'text-a-warn']}>{p.summary_vi || 'Chưa có mô tả một dòng'}</p>
+              </div>
+              <div class="flex flex-wrap items-center gap-2 text-[13px]">
+                <span class="a-badge a-badge-olive">{CATEGORY_LABEL[p.category]}</span>
+                {p.status === 'published' ? (
+                  <span class="a-badge a-badge-ok"><span class="h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true"></span>Đã xuất bản</span>
+                ) : (
+                  <span class="a-badge a-badge-draft"><span class="h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true"></span>Nháp</span>
+                )}
+                {p.featured && <span class="a-badge a-badge-olive"><Icon name="star" size={14} /> Nổi bật</span>}
+                <span class="hidden px-2 text-a-muted md:inline">#{p.position}</span>
+              </div>
+              <a href={`/admin/projects/${p.id}`} class="a-btn ml-auto" aria-label={`Sửa ${p.title_vi}`}><Icon name="pencil" size={16} /> Sửa</a>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  )}
+</Admin>
