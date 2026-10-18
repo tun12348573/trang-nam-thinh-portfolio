@@ -35,7 +35,9 @@ jobs:
         run: npx wrangler deploy --dry-run
       - name: Deploy
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: npx wrangler deploy
+        # Repo công khai → log Actions công khai. Khi lỗi xác thực, wrangler tự in email/tên tài khoản → che email.
+        # Shell mặc định chạy với -eo pipefail nên lỗi của wrangler vẫn làm bước này fail.
+        run: npx wrangler deploy 2>&1 | sed -E 's/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/<email ẩn>/g'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
