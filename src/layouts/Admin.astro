@@ -203,14 +203,22 @@ const initial = (user?.email ?? '?').charAt(0).toUpperCase();
       e.preventDefault();
       const button = e.submitter as HTMLButtonElement | null;
       const label = button?.innerHTML;
+      // Lấy dữ liệu TRƯỚC khi tắt nút: nút disabled bị loại khỏi FormData → mất name/value của nút (vd. action=save).
+      const body = new FormData(form, button);
       if (button) {
         button.disabled = true;
         button.textContent = 'Đang lưu…';
       }
       try {
-        const res = await fetch(form.getAttribute('action')!, { method: 'POST', body: new FormData(form, button) });
+        const res = await fetch(form.getAttribute('action')!, { method: 'POST', body });
         const err = new URL(res.url).searchParams.get('err');
         if (err) throw new Error(err);
+        // API form luôn trả 303. Không chuyển hướng = lỗi (401/403/500, Worker bị ngắt…) → báo lỗi,
+        // không mở địa chỉ API bằng GET (sẽ ra 404 và mất nội dung đang sửa).
+        if (!res.redirected) {
+          const data = (await res.json().catch(() => null)) as { error?: string } | null;
+          throw new Error(data?.error ?? `Lưu không thành công (mã ${res.status}). Tải lại trang rồi thử lại.`);
+        }
         delete form.dataset.dirty;
         location.href = res.url;
       } catch (error) {

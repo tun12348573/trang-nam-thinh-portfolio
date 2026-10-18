@@ -46,6 +46,19 @@ npm run deploy         # astro build && wrangler deploy
 Website chạy tại `https://trang-nam-thinh-portfolio.<tài-khoản>.workers.dev`. Admin tại `/admin/login`.
 
 - Cron Trigger (03:00 UTC hằng ngày) tự ping Supabase.
+
+### Deploy tự động (CI/CD, GitHub Actions)
+
+`.github/workflows/ci.yml` chạy với mọi push/PR: `npm ci` → `npm run check` → `npm run test:db` → `npm run build` → `wrangler deploy --dry-run`. Chỉ khi **push vào `main`** và mọi bước pass mới chạy `wrangler deploy`. PR chỉ kiểm tra, không deploy.
+
+Cài một lần (repo GitHub → Settings → Secrets and variables → Actions):
+
+1. `CLOUDFLARE_API_TOKEN`: Cloudflare Dashboard → My Profile → API Tokens → Create Token → mẫu **Edit Cloudflare Workers** → chọn đúng tài khoản → Create. Token chỉ hiện một lần; dán thẳng vào GitHub, không lưu vào file hay gửi qua chat.
+2. `CLOUDFLARE_ACCOUNT_ID`: lấy bằng `npx wrangler whoami`.
+
+Bằng `gh`: `gh secret set CLOUDFLARE_API_TOKEN` (dán token khi được hỏi) và `gh secret set CLOUDFLARE_ACCOUNT_ID --body <id>`.
+
+Migration Supabase **không** chạy trong CI (CI không giữ quyền ghi database): vẫn chạy tay trong SQL Editor, theo thứ tự ghi trong file migration.
 - **Cloudflare Web Analytics**: Dashboard → Analytics & Logs → Web Analytics → thêm site (miễn phí, không cookie).
 
 ## 3. Trước khi công khai (cần tên miền)
