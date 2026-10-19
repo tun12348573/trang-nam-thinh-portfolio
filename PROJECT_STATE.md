@@ -168,4 +168,10 @@ Cập nhật: 17/10/2026
   - CI/CD: `.github/workflows/ci.yml` (GitHub Actions, Node 22): `npm ci` → check → test:db → build → dry-run; deploy (`wrangler deploy`) chỉ khi push vào `main` và mọi bước pass. Secret: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` (hướng dẫn trong SETUP.md mục 2). YAML đã kiểm tra bằng parser; workflow **chưa chạy trên GitHub** (chờ tạo lại repo + đặt secret).
   - Bỏ qua: lint (chưa có ESLint), QA trình duyệt trong CI (cần dev server + phiên admin) → thêm khi có test e2e chạy với Supabase riêng cho CI.
 
+- 18–19/10/2026 — **Mở công khai repo + CI/CD chạy thật.**
+  - Repo công khai: lịch sử gộp thành 1 commit sạch (bỏ email cá nhân, `references/` → `.gitignore`, giữ trên máy); xóa repo cũ trên GitHub rồi tạo lại cùng tên (commit cũ mở theo SHA → "No commit found"). Commit dùng email noreply GitHub (`git config` riêng repo). Lịch sử cũ sao lưu ngoài repo: `../portfolio-history-backup-2026-10-17.bundle` (có email, không đưa lên đâu).
+  - CI lần 1: mọi bước kiểm tra pass, Deploy lỗi `Authentication error [code: 10000]` — token tạo nhầm tài khoản Cloudflare khác với tài khoản sở hữu Worker. Log công khai in email tài khoản → đã xóa lần chạy; bước Deploy giờ che email trong output (`sed`, `pipefail` vẫn báo lỗi).
+  - CI lần 2 (commit `b4eba1f`, token đúng tài khoản): pass toàn bộ, deploy version `458330d1`; log không có email. Bản thật: trang 200, `/en…` 301, 404 đúng, admin → login; script sửa nút Lưu có trên trang admin.
+  - Việc tiếp theo: chủ website đăng nhập admin, nhập lại link JEGA cho "Nhà Hà Phát", bấm Lưu, kiểm tra poster tour và khu "Khám phá không gian" trên trang công khai.
+
 Khi thực hiện, thêm ngày, phần đã thay đổi, file liên quan, lệnh kiểm tra/kết quả, giới hạn và việc tiếp theo. Giữ trạng thái đúng với bằng chứng thực tế.
