@@ -64,13 +64,21 @@ const { projectId, kind, label, toPublic, multiple = true } = Astro.props;
     return ((data?.[0]?.position as number | undefined) ?? 0) + 10;
   }
 
-  /** Hero mới thay hero cũ: trỏ settings sang ảnh mới rồi xóa ảnh cũ. */
-  async function replaceHero(newId: string) {
-    const { data: s } = await sb().from('site_settings').select('hero_media_id').eq('id', 1).single();
-    const { error } = await sb().from('site_settings').update({ hero_media_id: newId, hero_mode: 'image' }).eq('id', 1);
-    if (error) throw new Error(`Cập nhật hero: ${error.message}`);
-    if (s?.hero_media_id) {
-      const { data: old } = await sb().from('media_assets').select('*').eq('id', s.hero_media_id).maybeSingle();
+  // Ảnh của site chỉ có một tấm mỗi loại: ảnh mới thay ảnh cũ.
+  const SITE_MEDIA: Record<string, { column: 'hero_media_id' | 'about_media_id'; extra?: Record<string, string> }> = {
+    hero: { column: 'hero_media_id', extra: { hero_mode: 'image' } },
+    about: { column: 'about_media_id' },
+  };
+
+  /** Trỏ settings sang ảnh mới rồi xóa ảnh cũ (nếu có). */
+  async function replaceSiteMedia(kind: string, newId: string) {
+    const { column, extra } = SITE_MEDIA[kind];
+    const { data: s } = await sb().from('site_settings').select(column).eq('id', 1).single();
+    const { error } = await sb().from('site_settings').update({ [column]: newId, ...extra }).eq('id', 1);
+    if (error) throw new Error(`Cập nhật cài đặt: ${error.message}`);
+    const oldId = (s as Record<string, string | null> | null)?.[column];
+    if (oldId) {
+      const { data: old } = await sb().from('media_assets').select('*').eq('id', oldId).maybeSingle();
       if (old) await deleteMedia(old as Media);
     }
   }
@@ -131,7 +139,7 @@ const { projectId, kind, label, toPublic, multiple = true } = Astro.props;
             await sb().storage.from(bucket).remove(row.files.map((f) => `${prefix}/${f}`));
             throw new Error(`Lưu bản ghi: ${error.message}`);
           }
-          if (kind === 'hero') await replaceHero(id);
+          if (kind in SITE_MEDIA) await replaceSiteMedia(kind, id);
           li.textContent = `${file.name}: xong ✓`;
           done++;
         } catch (e) {

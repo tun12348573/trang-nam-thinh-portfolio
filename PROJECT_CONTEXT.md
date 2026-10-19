@@ -132,7 +132,7 @@ Chỉ tiếng Việt (CONF-10). Giọng doanh nghiệp, xưng "chúng tôi". Gi�
 2. Hero: headline ngắn ở phía trên bên trái, công trình lớn ở phần giữa/dưới, nút khám phá công trình màu tối. Headline nháp: “Kiến tạo không gian / mang dấu ấn riêng.” Có thể sửa câu để khớp số dòng của mẫu.
 3. Công trình tiêu biểu: ba công trình trên desktop, ảnh lớn, tên và một dòng thông tin kiến trúc. Không có giá bán.
 4. Công trình nổi bật: phần chữ nhỏ bên trái, hình lớn bên phải, nối tiếp nhịp thị giác đã thấy ở cuối video.
-5. Giới thiệu/dịch vụ ngắn và liên hệ: phần mở rộng được đề xuất, dùng cùng hệ chữ và khoảng trắng; không tuyên bố đã thấy trong video.
+5. Giới thiệu/dịch vụ ngắn và liên hệ (Giới thiệu có thể kèm một ảnh do admin tải lên: desktop ảnh trái : chữ phải = 4 : 6, ảnh giữ nguyên tỷ lệ; điện thoại ảnh trên chữ dưới; không có ảnh thì chỉ có chữ — chủ website yêu cầu 19/10/2026): phần mở rộng được đề xuất, dùng cùng hệ chữ và khoảng trắng; không tuyên bố đã thấy trong video.
 6. Footer tối giản: tên pháp lý theo ngôn ngữ, mã số thuế, địa chỉ, kênh liên hệ, logo. Các trường đều cấu hình được và ẩn khi để trống.
 
 ### Danh sách `/cong-trinh`
@@ -255,7 +255,7 @@ Tra cứu ngày 15/10/2026, kiểm tra lại khi triển khai:
 
 ### Mô hình dữ liệu tối thiểu
 
-- `site_settings` (một dòng): nội dung hero, hero media, giới thiệu, tên pháp lý, mã số thuế, địa chỉ, logo, kênh liên hệ (Zalo, điện thoại, email). Trường văn bản có hậu tố `_vi`. Lưu là có hiệu lực ngay.
+- `site_settings` (một dòng): nội dung hero, hero media, giới thiệu, ảnh giới thiệu (`about_media_id`, media `kind = 'about'`), tên pháp lý, mã số thuế, địa chỉ, logo, kênh liên hệ (Zalo, điện thoại, email). Trường văn bản có hậu tố `_vi`. Lưu là có hiệu lực ngay.
 - `projects`: id, slug, `status` (`draft`/`published`), `category` (enum CONF-21), thứ tự, cờ nổi bật, ảnh bìa, metadata, tiêu đề/mô tả/ý tưởng `_vi`, URL tour JEGA, poster tour, `published_at`. Constraint `publish_requires_content`.
 - `media_assets`: project, `kind` (render/photo/drawing/tour_poster/hero), thứ tự, `prefix` + `files` trong bucket, kích thước, alt/caption `_vi`, điểm cắt `focal_x/y`, `is_public` (= nằm ở bucket public).
 - `admin_users`: liên kết tới user Supabase Auth. Chỉ thêm thủ công bằng SQL/dashboard; không có đường nào để người dùng tự thêm mình.

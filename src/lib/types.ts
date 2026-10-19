@@ -1,7 +1,7 @@
 export const CATEGORIES = ['residential', 'interior', 'other'] as const;
 export type Category = (typeof CATEGORIES)[number];
 
-export const MEDIA_KINDS = ['render', 'photo', 'drawing', 'tour_poster', 'hero', 'logo'] as const;
+export const MEDIA_KINDS = ['render', 'photo', 'drawing', 'tour_poster', 'hero', 'logo', 'about'] as const;
 export type MediaKind = (typeof MEDIA_KINDS)[number];
 
 /** Một ảnh. Mọi file nằm dưới `prefix` trong bucket Supabase (private hoặc public theo `is_public`); `files` liệt kê tên file. */
@@ -56,12 +56,15 @@ export interface SiteSettings {
   tax_code: string;
   address_vi: string;
   logo_media_id: string | null;
+  /** Ảnh mục Giới thiệu (migration 0004; chưa chạy migration thì không có trường này). */
+  about_media_id?: string | null;
   phone: string;
   zalo: string;
   email: string;
   jega_embed_enabled: boolean;
   hero_media?: Media | null;
   logo_media?: Media | null;
+  about_media?: Media | null;
 }
 
 /** Trường bắt buộc trước khi xuất bản (DB chặn thêm bằng constraint publish_requires_content). */

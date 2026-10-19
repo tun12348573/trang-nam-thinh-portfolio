@@ -3,7 +3,7 @@ import type { Media, MediaKind, Project, SiteSettings } from './types';
 // Dữ liệu minh họa CHỈ dùng khi chưa cấu hình Supabase (dev). Trang hiển thị banner "DỮ LIỆU MINH HỌA".
 // Không phải công trình thật. Ảnh minh họa cắt từ clip hero (public/media/demo, xem CONF-25) để kiểm thử gallery/lightbox/bản vẽ.
 
-function dm(id: string, project_id: string, kind: MediaKind, dir: string, files: string[], width: number, height: number, position: number, alt: string): Media {
+function dm(id: string, project_id: string | null, kind: MediaKind, dir: string, files: string[], width: number, height: number, position: number, alt: string): Media {
   return {
     id, project_id, kind, position, prefix: `media/demo/${dir}`, files, width, height, bytes: 0,
     alt_vi: `${alt} (minh họa)`, caption_vi: 'Ảnh minh họa', focal_x: 50, focal_y: 78, is_public: true,
@@ -26,6 +26,8 @@ export const demoSettings: SiteSettings = {
   zalo: '',
   email: '',
   jega_embed_enabled: true,
+  about_media_id: 'demo-about',
+  about_media: dm('demo-about', null, 'about', 'r2', WEBP, 1100, 620, 10, 'Ảnh giới thiệu'),
 };
 
 const base = {

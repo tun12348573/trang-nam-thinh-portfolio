@@ -11,6 +11,7 @@ Không gửi mật khẩu hay secret vào hội thoại với AI. Website này k
    1. `supabase/migrations/0001_init.sql`: bảng, RLS.
    2. `supabase/migrations/0002_supabase_storage.sql`: bucket ảnh `media-private`/`media-public`, quyền storage, link video YouTube.
    3. `supabase/migrations/0003_drop_english.sql`: bỏ bản tiếng Anh — **xóa vĩnh viễn** các cột `_en`. Project đang chạy code cũ: deploy code mới (mục 2) **trước**, rồi mới chạy file này; chạy ngược thứ tự thì admin bản cũ lưu sẽ lỗi.
+   4. `supabase/migrations/0004_about_image.sql`: ảnh cho mục Giới thiệu trên trang chủ. Chạy trước hay sau deploy đều được; chưa chạy thì trang Cài đặt báo cần chạy, thay vì cho upload.
 3. **Authentication → Users → Add user**: email + mật khẩu admin, tích "Auto confirm User".
 4. Copy **User UID**, chạy riêng trong SQL Editor:
    ```sql

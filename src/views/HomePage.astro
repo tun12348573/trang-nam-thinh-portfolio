@@ -15,6 +15,7 @@ const selected = (featured.length >= 3 ? featured : projects).slice(0, 3);
 // Khu nổi bật chỉ hiện khi có công trình khác với 3 ô phía trên (tránh lặp một công trình hai lần).
 const highlight = featured.find((p) => !selected.includes(p)) ?? projects.find((p) => !selected.includes(p));
 const about = settings.about_vi;
+const aboutImg = settings.about_media;
 const contacts = [
   settings.phone && { label: TEXT.phone, value: settings.phone, href: `tel:${settings.phone.replace(/\s/g, '')}` },
   settings.zalo && { label: TEXT.zalo, value: settings.zalo, href: `https://zalo.me/${settings.zalo.replace(/\D/g, '')}` },
@@ -57,10 +58,27 @@ const contacts = [
 
   {about && (
     <section id="about" class="page pt-section scroll-mt-8" aria-labelledby="about-title">
-      <div class="grid gap-6 border-t border-line pt-10 md:grid-cols-[minmax(0,1fr)_minmax(0,1.9fr)] md:gap-16">
-        <h2 id="about-title" class="eyebrow">{TEXT.about_title}</h2>
-        <p class="max-w-[60ch] whitespace-pre-line text-[17px] leading-relaxed">{about}</p>
-      </div>
+      {aboutImg ? (
+        // Có ảnh: ảnh 4 : chữ 6 trên desktop; điện thoại xếp dọc (ảnh trên, chữ dưới). Ảnh giữ nguyên tỷ lệ, không cắt.
+        <div class="grid items-start gap-8 border-t border-line pt-10 md:grid-cols-[minmax(0,4fr)_minmax(0,6fr)] md:gap-16">
+          <MediaImage
+            media={aboutImg}
+            url={url}
+            sizes="(min-width: 768px) 40vw, 100vw"
+            aspect={aboutImg.width && aboutImg.height ? `${aboutImg.width} / ${aboutImg.height}` : '4 / 3'}
+            pendingLabel={TEXT.image_pending}
+          />
+          <div>
+            <h2 id="about-title" class="eyebrow">{TEXT.about_title}</h2>
+            <p class="mt-6 max-w-[60ch] whitespace-pre-line text-[17px] leading-relaxed">{about}</p>
+          </div>
+        </div>
+      ) : (
+        <div class="grid gap-6 border-t border-line pt-10 md:grid-cols-[minmax(0,1fr)_minmax(0,1.9fr)] md:gap-16">
+          <h2 id="about-title" class="eyebrow">{TEXT.about_title}</h2>
+          <p class="max-w-[60ch] whitespace-pre-line text-[17px] leading-relaxed">{about}</p>
+        </div>
+      )}
     </section>
   )}
 
@@ -70,9 +88,10 @@ const contacts = [
         <h2 id="contact-title" class="eyebrow">{TEXT.contact_title}</h2>
         <ul class="grid gap-4 sm:grid-cols-3">
           {contacts.map((c) => (
-            <li>
+            <li class="min-w-0">
               <p class="text-[13px] text-muted">{c.label}</p>
-              <a class="text-[17px] hover:underline" href={c.href}>{c.value}</a>
+              {/* Email dài tự xuống dòng (không tràn ngang ở 768px); py-3 âm: vùng bấm ≥ 44px, không đổi vị trí chữ. */}
+              <a class="-my-3 inline-block max-w-full py-3 text-[17px] [overflow-wrap:anywhere] hover:underline" href={c.href}>{c.value}</a>
             </li>
           ))}
         </ul>

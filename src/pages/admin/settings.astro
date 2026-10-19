@@ -10,6 +10,9 @@ import type { Media, SiteSettings } from '../../lib/types';
 const sb = Astro.locals.supabase;
 const s = check(await sb.from('site_settings').select('*').eq('id', 1).single()) as SiteSettings;
 const hero = s.hero_media_id ? (check(await sb.from('media_assets').select('*').eq('id', s.hero_media_id).maybeSingle()) as Media | null) : null;
+const about = s.about_media_id ? (check(await sb.from('media_assets').select('*').eq('id', s.about_media_id).maybeSingle()) as Media | null) : null;
+// Chưa chạy migration 0004 thì site_settings chưa có cột about_media_id → ẩn phần upload (upload sẽ lỗi).
+const aboutReady = 'about_media_id' in s;
 const heroSrc = hero ? adminFileUrl(hero, hero.files.includes('w1280.webp') ? 'w1280.webp' : largestImage(hero) ?? hero.files[0]) : '/media/hero-poster.webp';
 const val = (k: string) => String((s as unknown as Record<string, unknown>)[k] ?? '');
 
@@ -114,6 +117,22 @@ const cards: { id: string; title: string; sub: string; fields: Field[] }[] = [
         {hero && <MediaList items={[hero]} returnTo="/admin/settings" focal={false} />}
         <Uploader projectId={null} kind="hero" label={hero ? 'Thay ảnh hero' : 'Dùng ảnh thay video'} toPublic multiple={false} />
         <p class="a-help">Chọn ảnh ngoại thất chụp rộng, phần trời sáng ở trên để headline đọc rõ. Xóa ảnh hero để quay lại video mặc định (đổi video: thay file public/media/hero.mp4 rồi deploy lại).</p>
+      </section>
+
+      <section class="a-card space-y-4" aria-labelledby="h-about-img">
+        <div>
+          <h2 id="h-about-img" class="a-card-title">Ảnh mục Giới thiệu</h2>
+          <p class="a-card-sub">Trên máy tính: ảnh bên trái, chữ giới thiệu bên phải (tỷ lệ 4 : 6). Không có ảnh thì mục chỉ có chữ.</p>
+        </div>
+        {aboutReady ? (
+          <>
+            <MediaList items={about ? [about] : []} returnTo="/admin/settings" focal={false} />
+            <Uploader projectId={null} kind="about" label={about ? 'Thay ảnh' : 'Thêm ảnh'} toPublic multiple={false} />
+            <p class="a-help">Ảnh hiện nguyên khung, không cắt. Nhập mô tả ảnh (alt) trong "Mô tả & điểm cắt" sau khi tải lên.</p>
+          </>
+        ) : (
+          <p class="a-alert a-alert-err"><span class="min-w-0 [overflow-wrap:anywhere]">Database chưa có cột ảnh Giới thiệu: chạy <code>supabase/migrations/0004_about_image.sql</code> trong Supabase SQL Editor (SETUP.md).</span></p>
+        )}
       </section>
     </aside>
   </div>

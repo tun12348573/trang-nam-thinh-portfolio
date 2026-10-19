@@ -56,6 +56,7 @@ await db.exec(`
 `);
 // Dữ liệu trên được tạo theo schema song ngữ cũ → chạy 0003 lên DB đang có dữ liệu, giống Supabase thật.
 await migrate('0003_drop_english.sql');
+await migrate('0004_about_image.sql');
 
 test('khách (anon) chỉ thấy công trình đã xuất bản', async () => {
   const r = await as('anon', null, 'select slug from projects');
@@ -100,6 +101,20 @@ test('0003 xóa hết cột tiếng Anh, giữ dữ liệu tiếng Việt', asyn
   assert.deepEqual(cols.rows, []);
   const p = await db.query(`select title_vi, status from projects where slug = 'cong-khai'`);
   assert.deepEqual(p.rows, [{ title_vi: 'A', status: 'published' }]);
+});
+
+test('0004 ảnh Giới thiệu: media của site, admin đặt được, xóa ảnh thì settings về null', async () => {
+  await assert.rejects(
+    db.query(`insert into media_assets (project_id, kind, prefix, files) values ('11111111-1111-1111-1111-111111111111', 'about', 'x/about-p', '{w640.webp}')`),
+    /media_owner/,
+  );
+  await db.exec(`insert into media_assets (id, kind, prefix, files, is_public) values ('bbbbbbbb-0000-0000-0000-000000000001', 'about', 'site/about', '{w640.webp}', true)`);
+  const set = await as('authenticated', ADMIN, `update site_settings set about_media_id = 'bbbbbbbb-0000-0000-0000-000000000001' where id = 1 returning about_media_id`);
+  assert.equal(set.rows[0].about_media_id, 'bbbbbbbb-0000-0000-0000-000000000001');
+  // Ngoài transaction để kiểm tra on delete set null.
+  await db.exec(`update site_settings set about_media_id = 'bbbbbbbb-0000-0000-0000-000000000001' where id = 1; delete from media_assets where id = 'bbbbbbbb-0000-0000-0000-000000000001';`);
+  const after = await db.query(`select about_media_id from site_settings where id = 1`);
+  assert.equal(after.rows[0].about_media_id, null);
 });
 
 test('slug phải là ASCII gạch nối', async () => {

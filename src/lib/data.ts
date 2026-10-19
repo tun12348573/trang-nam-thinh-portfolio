@@ -56,7 +56,13 @@ export function getSettings(): Promise<SiteSettings> {
       .eq('id', 1)
       .single();
     if (error) throw error;
-    return data as SiteSettings;
+    const s = data as SiteSettings;
+    // Ảnh Giới thiệu: tải theo id thay vì embed qua FK settings_about_fk — DB chưa chạy migration 0004 vẫn không lỗi.
+    if (s.about_media_id) {
+      const { data: m } = await anonClient().from('media_assets').select('*').eq('id', s.about_media_id).maybeSingle();
+      s.about_media = (m as Media | null) ?? null;
+    }
+    return s;
   });
 }
 

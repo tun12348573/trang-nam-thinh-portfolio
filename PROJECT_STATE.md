@@ -174,4 +174,12 @@ Cập nhật: 17/10/2026
   - CI lần 2 (commit `b4eba1f`, token đúng tài khoản): pass toàn bộ, deploy version `458330d1`; log không có email. Bản thật: trang 200, `/en…` 301, 404 đúng, admin → login; script sửa nút Lưu có trên trang admin.
   - Việc tiếp theo: chủ website đăng nhập admin, nhập lại link JEGA cho "Nhà Hà Phát", bấm Lưu, kiểm tra poster tour và khu "Khám phá không gian" trên trang công khai.
 
+- 19/10/2026 — **Ảnh cho mục Giới thiệu (ảnh : chữ = 4 : 6).**
+  - DB: `supabase/migrations/0004_about_image.sql` — loại media `about` (media của site như hero/logo), cột `site_settings.about_media_id` + FK `settings_about_fk` `on delete set null`. **Chưa chạy trên Supabase thật.** Không phụ thuộc thứ tự deploy: `getSettings` (`src/lib/data.ts`) tải ảnh theo id khi có, không embed qua FK mới; admin ẩn upload và báo cần chạy migration khi chưa có cột.
+  - Admin (`/admin/settings`): thẻ "Ảnh mục Giới thiệu" cạnh thẻ hero — upload (một ảnh, ảnh mới thay ảnh cũ), sửa alt, xóa. `Uploader.astro`: gộp `replaceHero` thành `replaceSiteMedia` dùng cho hero và about.
+  - Trang chủ (`src/views/HomePage.astro`): có ảnh → lưới `4fr : 6fr`, ảnh trái giữ nguyên tỷ lệ (aspect theo kích thước gốc), tiêu đề "Giới thiệu" + chữ bên phải; điện thoại xếp dọc ảnh trên. Không ảnh → bố cục cũ. Dữ liệu demo có ảnh mẫu (`media/demo/r2`).
+  - Sửa thêm (lộ ra khi có dữ liệu liên hệ thật): mục Liên hệ tràn ngang 57px ở 768px (email dài) → `min-w-0` + `overflow-wrap:anywhere`; link điện thoại/Zalo cao 20px ở 390px → `py-3` âm (≥ 44px).
+  - Kiểm tra: `npm run check` 0 lỗi; `test:db` 16/16 (thêm test 0004: `media_owner`, admin đặt `about_media_id`, xóa ảnh → null); build OK; dry-run 1.590 KiB. Demo: tỷ lệ đo được 4,0 : 6,0 ở 1440 và 768px (ảnh 496/744px), 390px xếp dọc, ảnh tải được, có alt. Dev (Supabase thật, chưa 0004): trang chủ giữ bố cục cũ, thẻ admin hiện cảnh báo chạy migration; `qa:shots` 12/12, `qa-a11y` 8/8, `qa-admin` 10/10, hero 13/13.
+  - Việc tiếp theo: chủ website chạy 0004 trong SQL Editor → `/admin/settings` → "Ảnh mục Giới thiệu" → tải ảnh → nhập alt.
+
 Khi thực hiện, thêm ngày, phần đã thay đổi, file liên quan, lệnh kiểm tra/kết quả, giới hạn và việc tiếp theo. Giữ trạng thái đúng với bằng chứng thực tế.
