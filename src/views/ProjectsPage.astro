@@ -35,7 +35,7 @@ const base = PATHS.projects;
     {shown.length === 0 ? (
       <p class="mt-16 text-muted">{TEXT.empty_projects}</p>
     ) : (
-      <div class="mt-10 grid gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
+      <div class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {shown.map((p) => <ProjectCard project={p} url={url} />)}
       </div>
     )}

@@ -121,7 +121,7 @@ const ogImage = cover?.files.includes('w1280.webp') ? url(cover, 'w1280.webp') :
     {related.length > 0 && (
       <section class="page pt-section" aria-labelledby="related">
         <h2 id="related" class="eyebrow mb-6">{TEXT.related}</h2>
-        <div class="grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+        <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {related.map((r) => <ProjectCard project={r} url={url} />)}
         </div>
       </section>

@@ -32,7 +32,7 @@ const contacts = [
         <h2 id="selected-title" class="max-w-[22ch] text-section font-normal">{TEXT.selected_title}</h2>
         <p class="max-w-xs text-[13px] leading-relaxed text-muted md:justify-self-end">{TEXT.selected_text}</p>
       </div>
-      <div class="mt-10 grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+      <div class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {selected.map((p) => <ProjectCard project={p} url={url} />)}
       </div>
     </section>

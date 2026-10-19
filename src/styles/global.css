@@ -23,6 +23,10 @@
   --container-page: 1440px;
 
   --radius-img: 2px;
+  /* Thẻ công trình: sáng hơn canvas một chút; bo nhỏ (brief: không thẻ bo lớn, không bóng dày). */
+  --color-card: #fbfaf7;
+  --color-card-line-hover: #c9c8bf;
+  --radius-card: 4px;
 }
 
 @layer base {
@@ -91,6 +95,28 @@
   a:hover .img-frame img {
     transform: scale(1.025);
   }
+  /* Thẻ công trình: ảnh sát mép trên, chữ có đệm; hover nhích nhẹ + viền đậm hơn + bóng rất mờ. */
+  .card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-card);
+    background: var(--color-card);
+    transition:
+      transform 0.35s ease,
+      border-color 0.35s ease,
+      box-shadow 0.35s ease;
+  }
+  .card:hover {
+    transform: translateY(-2px);
+    border-color: var(--color-card-line-hover);
+    box-shadow: 0 12px 28px -20px rgb(48 52 47 / 0.35);
+  }
+  .card .img-frame {
+    border-radius: 0;
+  }
   .placeholder-label {
     font-size: 12px;
     letter-spacing: 0.06em;
@@ -106,7 +132,8 @@
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
   }
-  a:hover .img-frame img {
+  a:hover .img-frame img,
+  .card:hover {
     transform: none;
   }
 }

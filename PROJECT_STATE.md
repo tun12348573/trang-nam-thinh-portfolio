@@ -182,4 +182,9 @@ Cập nhật: 17/10/2026
   - Kiểm tra: `npm run check` 0 lỗi; `test:db` 16/16 (thêm test 0004: `media_owner`, admin đặt `about_media_id`, xóa ảnh → null); build OK; dry-run 1.590 KiB. Demo: tỷ lệ đo được 4,0 : 6,0 ở 1440 và 768px (ảnh 496/744px), 390px xếp dọc, ảnh tải được, có alt. Dev (Supabase thật, chưa 0004): trang chủ giữ bố cục cũ, thẻ admin hiện cảnh báo chạy migration; `qa:shots` 12/12, `qa-a11y` 8/8, `qa-admin` 10/10, hero 13/13.
   - Việc tiếp theo: chủ website chạy 0004 trong SQL Editor → `/admin/settings` → "Ảnh mục Giới thiệu" → tải ảnh → nhập alt.
 
+- 19/10/2026 — **Thẻ công trình + icon cho thông tin phụ** (chủ website yêu cầu). `src/components/ProjectCard.astro` dùng ở trang chủ (công trình tiêu biểu), `/cong-trinh`, công trình liên quan.
+  - Thẻ (`.card` trong `src/styles/global.css`, token `--color-card` #fbfaf7, `--color-card-line-hover`, `--radius-card` 4px): viền mảnh, ảnh sát mép trên, chữ có đệm; hover nhích 2px + viền đậm + bóng rất mờ (tắt nhích khi reduced motion). Giữ trong giới hạn brief: bo nhỏ, không bóng dày, nền sáng. Lưới đổi sang `gap-6` đều.
+  - Icon Lucide nét mảnh (`src/components/admin/Icon.astro`, thêm sofa/building-2/ruler-dimension-line/map-pin/calendar/arrow-up-right): loại hình theo danh mục (nhà ở → house, nội thất → sofa, khác → building), diện tích → thước, địa điểm → map-pin, năm → calendar (năm chuyển từ cạnh tên xuống dòng thông tin); mũi tên ↗ góc thẻ. Icon `aria-hidden`, mỗi mục có nhãn `sr-only` ("Diện tích: 200 m²").
+  - Kiểm tra (dev, Supabase thật): `astro check` 0 lỗi; ảnh 1440/390px: hai thẻ cao bằng nhau, hover đúng; `qa:shots` 12/12, `qa-a11y` 8/8.
+
 Khi thực hiện, thêm ngày, phần đã thay đổi, file liên quan, lệnh kiểm tra/kết quả, giới hạn và việc tiếp theo. Giữ trạng thái đúng với bằng chứng thực tế.
